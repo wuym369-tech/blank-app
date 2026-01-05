@@ -3,205 +3,352 @@ import streamlit as st
 st.title("🎈香香花園專屬AI調香師")
 st.write("Let's start building! For help and inspiration.")
 import streamlit as st
-import time
 from datetime import date
 
-# 頁面配置
+# 1. 頁面配置
 st.set_page_config(page_title="Aroma's Secret Lab", layout="centered")
 
-# --- 核心邏輯函式 ---
-def get_life_number(birthday):
-    digits = "".join(filter(str.isdigit, str(birthday)))
-    while len(digits) > 1:
-        digits = str(sum(int(d) for d in digits))
-    return digits
+# ==========================================
+# 資料庫 A：78 種氣味清單 (根據照片整理)
+# ==========================================
+scent_map = {
+    # 前調
+    "前調 芳香 01": "富家千金 (小豆蔻/烏龍茶)", "前調 芳香 02": "夏天的風 (羅勒/百里香)",
+    "前調 芳香 03": "野花 (小豆蔻/含羞草)", "前調 芳香 04": "肆意奔放 (小豆蔻/馬郁蘭)",
+    "前調 芳香 05": "鄉愁 (梔子花/綠葉/甘草)", "前調 芳香 06": "茶樹 (茶樹)",
+    "前調 芳香 07": "薄荷 (薄荷)", "前調 芳香 08": "馬鞭草 (馬鞭草)", "前調 芳香 09": "綠茶 (綠茶)",
+    "前調 柑橘 01": "花園 (橘子/檸檬/開心果)", "前調 柑橘 02": "記憶蜜糖 (橘子/桃子)",
+    "前調 柑橘 03": "寂靜秋夜 (胡蘿蔔/番茄/橙子)", "前調 柑橘 04": "氣泡水 (葡萄柚/橘子)",
+    "前調 柑橘 05": "海邊漫步 (橙子/檸檬)", "前調 柑橘 06": "海灘 (佛手柑/檸檬/香橙)",
+    "前調 柑橘 07": "純真 (橙子/茉莉/琥珀)", "前調 柑苔 01": "晨間森林 (無花果木/香根草)",
+    "前調 柑苔 02": "信仰 (橘子/麝香/苦橙葉)", "前調 柑苔 03": "清新 (葡萄柚/橡木苔)",
+    "前調 柑苔 04": "苔蘚 (苔蘚)",
+    # 中調
+    "中調 果香 01": "夏日莊園 (柑橘/無花果)", "中調 果香 02": "純粹 (香瓜/橘子/黃瓜)",
+    "中調 果香 03": "甜美 (草莓/梨/蜜橘)", "中調 果香 04": "情竇初開 (紅漿果/糖)",
+    "中調 果香 05": "撒丁島 (橙花油/檸檬)", "中調 果香 06": "仲夏花園 (紅蘋果/玫瑰)",
+    "中調 花香 01": "白襯衫 (薰衣草/橙花)", "中調 花香 02": "優雅女人 (晚香玉/茉莉花)",
+    "中調 花香 03": "雨後花園 (玫瑰/依蘭)", "中調 花香 04": "靜謐花園 (玫瑰/茉莉)",
+    "中調 花香 19": "桂花 (桂花)",
+    # 後調
+    "後調 東方 01": "雨落幽然 (苦橙/琥珀)", "後調 東方 02": "烏龍茶 (茶葉/香根草)",
+    "後調 東方 05": "西西里島 (杏仁/香草/麝香)", "後調 東方 09": "荷爾蒙 (花椒/廣藿香)",
+    "後調 木質 01": "冬日松林 (雪松/麝香)", "後調 木質 02": "沉靜森林 (白松香/檀香)",
+    "後調 木質 08": "寺廟 (黑胡椒/檀木)", "後調 木質 10": "故鄉 (沉香/廣藿香)",
+    "後調 木質 13": "檀香 (檀香)"
+}
 
-def get_zodiac(month, day):
-    zodiac_signs = [(1, 20, "摩羯座"), (2, 19, "水瓶座"), (3, 21, "雙魚座"), (4, 20, "白羊座"), (5, 21, "金牛座"), (6, 22, "雙子座"), (7, 23, "巨蟹座"), (8, 23, "獅子座"), (9, 23, "處女座"), (10, 24, "天秤座"), (11, 23, "天蠍座"), (12, 22, "射手座"), (12, 31, "摩羯座")]
-    for m, d, sign in zodiac_signs:
-        if month < m or (month == m and day <= d): return sign
-    return "摩羯座"
+# ==========================================
+# 資料庫 B：星座與心理特徵描述
+# ==========================================
+zodiac_db = {
+    "白羊座": "天生的開拓者，充滿勇氣與活力。", "金牛座": "感官美好的守護者，追求質感生活。",
+    "雙子座": "靈動的思想傳播者，充滿好奇心。", "巨蟹座": "細膩的療癒者，重視歸屬與情感。",
+    "獅子座": "自信的領導者，散發強大創造力。", "處女座": "追求完美的工匠，擁有極致觀察力。",
+    "天秤座": "和諧的協調者，追求優雅與平衡。", "天蠍座": "深邃的洞察者，意志強大且神祕。",
+    "射手座": "真理的追求者，熱愛自由與冒險。", "摩羯座": "踏實的攀登者，擁有耐心與責任。",
+    "水瓶座": "獨立的革新者，思維超前且獨特。", "雙魚座": "靈性的藝術家，靈魂充滿共情能力。"
+}
 
-# --- 完整 16 型人格：多香味推薦數據 ---
+personality_traits = {
+    "芳香": "展現冷靜知性，適合追求邏輯與秩序的你。",
+    "柑橘": "象徵親和活力，詮釋你開朗具感染力的性格。",
+    "柑苔": "代表獨立探求，符合你追求獨特的自由靈魂。",
+    "果香": "充滿生活情趣，對應你熱情且好奇的特質。",
+    "花香": "展現優雅感性，呼應你細膩且富共情的內在。",
+    "東方": "散發神祕權威，適合意志強大且深邃的你。",
+    "木質": "象徵務實穩定，展現值得信賴的執行者風範。"
+}
+# --- [新增] 生肖資料庫 ---
+zodiac_animal_db = {
+    "鼠": "機敏靈活，觀察力極強，具備開拓精神。", "牛": "勤奮踏實，意志堅定，值得信賴。",
+    "虎": "勇猛果敢，具備領袖氣質與冒險精神。", "兔": "溫柔文雅，心思細膩，追求和諧生活。",
+    "龍": "充滿活力，志向遠大，具備天生的影響力。", "蛇": "冷靜神祕，直覺敏銳，處事精明幹練。",
+    "馬": "熱情奔放，嚮往自由，行動力與生命力十足。", "羊": "仁慈體貼，富有藝術氣息與同情心。",
+    "猴": "聰明伶俐，應變力強，充滿創意與好奇心。", "雞": "勤奮負責，講求效率，擁有獨到的審美。",
+    "狗": "忠誠可靠，正義感強，是值得交心的夥伴。", "豬": "真誠厚道，性情豁達，天生自帶福氣。"
+}
+# --- [新增] 生肖五行對應表 ---
+zodiac_elements = {
+    "鼠": "水", "豬": "水",
+    "虎": "木", "兔": "木",
+    "蛇": "火", "馬": "火",
+    "猴": "金", "雞": "金",
+    "牛": "土", "龍": "土", "羊": "土", "狗": "土"
+}
+
+element_traits = {
+    "水": "代表靈性與智慧，流動且具備極強的適應力。",
+    "木": "代表成長與生機，充滿仁慈之心與向上攀升的能量。",
+    "火": "代表熱情與禮儀，散發著溫暖與照亮他人的光芒。",
+    "金": "代表剛毅與果斷，擁有高尚的節操與精準的決策力。",
+    "土": "代表厚重與信用，象徵著值得信賴的包容力與穩定感。"
+}
+# --- [強化] 生命靈數資料庫 ---
+life_num_detail = {
+    "1": "開創數：象徵獨立、自信與天生的領導力。", "2": "合作數：象徵和諧、體貼與優異的協調性。",
+    "3": "創意數：象徵熱情、表達與無窮的想像力。", "4": "執行數：象徵穩定、秩序與紮實的實踐力。",
+    "5": "冒險數：象徵自由、多變與勇於挑戰的靈魂。", "6": "奉獻數：象徵責任、愛心與對美好的執著。",
+    "7": "探求數：象徵智慧、內省與對真理的追求。", "8": "權威數：象徵豐盛、決策與強大的掌控力。",
+    "9": "博愛數：象徵慈悲、理想與跨越邊界的視野。"
+}
+# ==========================================
+# 資料庫 C：16 型人格專業配對 (部分範例)
+# ==========================================
 mbti_db = {
-    "INTJ": {
-        "title": "智力建築師", "intro": "理性的戰略家，內心結構精密。",
-        "top": ["草本 02", "木質 04", "柑橘 05", "草本 01"],
-        "mid": ["木質 11", "清新 07", "辛辣 02", "花香 08"],
-        "base": ["木質 07", "東方 09", "木質 14", "木質 10"],
-        "logic": "冷色調與紮實木質，撐起您不隨波逐流的思考體系。"
+    "INTJ (建築師)": {
+        "title": "理性的戰略家",
+        "top": ["前調 芳香 01", "前調 柑苔 01", "前調 芳香 05"],
+        "mid": ["中調 花香 08", "中調 果香 09", "中調 花香 01"],
+        "base": ["後調 木質 10", "後調 東方 02", "後調 木質 08"],
+        "logic": "清冷茶香與沈穩木質，為深謀慮的思維提供留白空間。"
     },
-    "INFP": {
-        "title": "靈魂調解者", "intro": "溫柔理想主義者，對美有獨特堅持。",
-        "top": ["果香 08", "清新 03", "花香 11", "柑橘 04"],
-        "mid": ["花香 14", "花香 05", "草本 06", "果香 02"],
-        "base": ["東方 05", "麝香 01", "東方 04", "木質 02"],
-        "logic": "柔和感性花香，為您敏感的靈魂提供溫馨的守護。"
+    "INFP (調解者)": {
+        "title": "溫柔理想主義者",
+        "top": ["前調 柑橘 06", "前調 芳香 03", "前調 芳香 02"],
+        "mid": ["中調 花香 03", "中調 花香 04", "中調 花香 19"],
+        "base": ["後調 東方 05", "後調 木質 01", "後調 木質 02"],
+        "logic": "柔軟的花香與包裹感強的後調，守護內心最純粹的理想。"
     },
-    "INFJ": {
-        "title": "神祕提倡者", "intro": "神祕洞察者，追求靈魂深處的連結。",
-        "top": ["清新 05", "草本 03", "柑橘 04", "木質 05"],
-        "mid": ["花香 02", "木質 11", "花香 09", "清新 07"],
-        "base": ["東方 09", "木質 14", "麝香 01", "東方 02"],
-        "logic": "空靈與沈靜的調性，共鳴您追求真理的內在視野。"
+    "INFJ (提倡者)": {
+        "title": "寧靜的預言家",
+        "top": ["前調 芳香 09", "前調 柑苔 04", "前調 芳香 05"],
+        "mid": ["中調 花香 02", "中調 花香 06", "中調 花香 14"],
+        "base": ["後調 木質 11", "後調 東方 04", "後調 木質 07"],
+        "logic": "幽靜的綠茶與焚香，體現出深邃且具備靈性的洞察力。"
     },
-    "ENFP": {
-        "title": "熱情啟發者", "intro": "充滿好奇心的開創者，熱愛自由與創意。",
-        "top": ["柑橘 01", "果香 02", "果香 09", "清新 04"],
-        "mid": ["果香 06", "花香 15", "花香 12", "果香 05"],
-        "base": ["東方 01", "木質 02", "麝香 03", "東方 05"],
-        "logic": "跳躍果香與甜美底韻，象徵您永不停歇的創意冒險。"
+    "ENFP (競選者)": {
+        "title": "熱情的創意家",
+        "top": ["前調 柑橘 04", "前調 柑橘 02", "前調 果香 03"],
+        "mid": ["中調 果香 04", "中調 花香 07", "中調 果香 06"],
+        "base": ["後調 東方 06", "後調 東方 11", "後調 木質 13"],
+        "logic": "明亮跳躍的氣泡感與甜美果香，展現無窮的感染力。"
     },
-    "ISTJ": {
-        "title": "務實守護者", "intro": "注重細節與秩序，誠實且值得信賴。",
-        "top": ["草本 01", "草本 03", "柑橘 03", "清新 09"],
-        "mid": ["草本 06", "木質 12", "辛辣 01", "花香 06"],
-        "base": ["木質 07", "木質 09", "東方 07", "木質 10"],
-        "logic": "潔淨利落的氣息，體現您紮實、可靠且高效的原則。"
+    "ISTJ (物流師)": {
+        "title": "務實的守護者",
+        "top": ["前調 芳香 06", "前調 柑苔 02", "前調 芳香 08"],
+        "mid": ["中調 花香 01", "中調 花香 08", "中調 果香 12"],
+        "base": ["後調 木質 05", "後調 木質 03", "後調 木質 10"],
+        "logic": "潔淨的草本與紮實的雪松，呼應嚴謹且可靠的職業風範。"
     },
-    "ISFJ": {
-        "title": "溫暖守護者", "intro": "細膩照顧者，散發經典優雅的親和力。",
-        "top": ["柑橘 04", "清新 03", "果香 01", "花香 11"],
-        "mid": ["花香 09", "花香 14", "花香 07", "草本 06"],
-        "base": ["麝香 01", "木質 02", "東方 05", "東方 04"],
-        "logic": "溫潤純淨的花香與麝香，包裹出您最體貼的守護能量。"
+    "ISFJ (守衛者)": {
+        "title": "細膩的照顧者",
+        "top": ["前調 柑橘 07", "前調 芳香 02", "前調 柑橘 01"],
+        "mid": ["中調 花香 09", "中調 花香 12", "中調 花香 18"],
+        "base": ["後調 木質 02", "後調 東方 08", "後調 木質 01"],
+        "logic": "溫潤的花香與暖感木質，營造出如家一般安心的避風港。"
     },
-    "ENTJ": {
-        "title": "果斷指揮官", "intro": "天生領導者，具備強大意志與遠見。",
-        "top": ["辛辣 02", "柑橘 01", "草本 02", "清新 01"],
-        "mid": ["花香 12", "木質 11", "辛辣 05", "木質 05"],
-        "base": ["東方 07", "木質 07", "木質 14", "東方 06"],
-        "logic": "權威氣場調性，展現您目標明確且果斷不羈的氣勢。"
+    "ENTJ (指揮官)": {
+        "title": "果斷的領導者",
+        "top": ["前調 芳香 04", "前調 柑苔 01", "前調 柑橘 03"],
+        "mid": ["中調 果香 05", "中調 花香 11", "中調 果香 01"],
+        "base": ["後調 東方 09", "後調 木質 08", "後調 東方 10"],
+        "logic": "強烈的辛香與廣藿香，奠定不容置疑的權威與執行氣場。"
     },
-    "ENTP": {
-        "title": "智慧辯論家", "intro": "靈活挑戰者，在碰撞中尋找新可能性。",
-        "top": ["草本 04", "柑橘 03", "清新 04", "辛辣 03"],
-        "mid": ["花香 08", "果香 05", "辛辣 01", "清新 07"],
-        "base": ["木質 10", "東方 03", "木質 12", "東方 02"],
-        "logic": "靈動且富有層次的轉折，呼應您敏捷而多變的思維。"
+    "ENTP (辯論家)": {
+        "title": "靈動的創新者",
+        "top": ["前調 柑橘 04", "前調 芳香 07", "前調 柑苔 03"],
+        "mid": ["中調 果香 08", "中調 果香 07", "中調 花香 17"],
+        "base": ["後調 東方 03", "後調 東方 09", "後調 木質 11"],
+        "logic": "充滿層次與反轉的冷熱調性，呼應其敏捷且具挑戰性的思維。"
     },
-    "ENFJ": {
-        "title": "魅力主人公", "intro": "魅力引導者，共情力強且鼓舞大眾。",
-        "top": ["柑橘 02", "果香 02", "花香 11", "清新 01"],
-        "mid": ["花香 15", "花香 09", "果香 04", "花香 01"],
-        "base": ["東方 04", "麝香 01", "木質 02", "東方 05"],
-        "logic": "大氣溫暖的調性，完美詮釋您那天生正向的感染力。"
+    "ENFJ (主人公)": {
+        "title": "具感染力的領袖",
+        "top": ["前調 柑橘 07", "前調 芳香 09", "前調 柑橘 05"],
+        "mid": ["中調 花香 05", "中調 花香 09", "中調 果香 06"],
+        "base": ["後調 木質 13", "後調 東方 08", "後調 木質 12"],
+        "logic": "明亮陽光的花香調，傳遞溫暖且積極正向的領袖能量。"
     },
-    "ESTJ": {
-        "title": "秩序總經理", "intro": "卓越管理者，重視傳統、實效與效率。",
-        "top": ["草本 02", "柑橘 03", "草本 01", "清新 05"],
-        "mid": ["木質 05", "木質 11", "辛辣 02", "草本 06"],
-        "base": ["木質 09", "木質 07", "東方 07", "木質 12"],
-        "logic": "嚴謹森林調，展現您在現實世界中建立秩序的氣場。"
+    "ESTJ (總經理)": {
+        "title": "卓越的管理者",
+        "top": ["前調 芳香 02", "前調 柑橘 05", "前調 芳香 08"],
+        "mid": ["中調 花香 01", "中調 果香 11", "中調 果香 12"],
+        "base": ["後調 木質 03", "後調 木質 08", "後調 木質 10"],
+        "logic": "俐落的柑橘與沈穩檀木，體現高效能與秩序感。"
     },
-    "ESFJ": {
-        "title": "熱情執政官", "intro": "社交熱心領袖，關照他人需求且好客。",
-        "top": ["果香 05", "果香 01", "柑橘 04", "花香 07"],
-        "mid": ["花香 11", "花香 14", "果香 08", "花香 09"],
-        "base": ["木質 04", "東方 01", "麝香 01", "東方 05"],
-        "logic": "甜美繁花與溫潤木質，讓您身邊的人感到愛與穩定。"
+    "ESFJ (執政官)": {
+        "title": "熱心的社交家",
+        "top": ["前調 果香 03", "前調 柑橘 02", "前調 柑橘 01"],
+        "mid": ["中調 花香 14", "中調 花香 16", "中調 果香 10"],
+        "base": ["後調 東方 06", "後調 木質 13", "後調 東方 11"],
+        "logic": "親切甜美的花果香，讓社交場合充滿溫馨與和諧感。"
     },
-    "ISTP": {
-        "title": "冷靜鑒賞家", "intro": "冷靜行動派，熱愛探索事物的本質結構。",
-        "top": ["清新 09", "草本 04", "柑橘 05", "清新 04"],
-        "mid": ["草本 06", "辛辣 01", "木質 12", "清新 07"],
-        "base": ["木質 12", "木質 14", "東方 07", "木質 07"],
-        "logic": "技術感且乾淨的調性，體現您專注、俐落的個人風格。"
+    "ISTP (鑑賞家)": {
+        "title": "冷靜的行動派",
+        "top": ["前調 芳香 07", "前調 柑苔 03", "前調 芳香 06"],
+        "mid": ["中調 果香 09", "中調 花香 08", "中調 果香 14"],
+        "base": ["後調 木質 06", "後調 木質 12", "後調 東方 02"],
+        "logic": "冷冽的薄荷與空靈的沉香，體現極簡且獨立的風格。"
     },
-    "ISFP": {
-        "title": "藝術探險家", "intro": "靈動藝術家，以敏銳直覺探索生活美感。",
-        "top": ["果香 04", "花香 05", "清新 03", "果香 02"],
-        "mid": ["花香 05", "清新 08", "花香 14", "果香 06"],
-        "base": ["木質 04", "東方 05", "麝香 01", "木質 02"],
-        "logic": "富有詩意的流動果香，共鳴您對美感極其細膩的感知。"
+    "ISFP (探險家)": {
+        "title": "感性的藝術家",
+        "top": ["前調 柑橘 03", "前調 芳香 03", "前調 柑橘 06"],
+        "mid": ["中調 花香 07", "中調 果香 02", "中調 花香 03"],
+        "base": ["後調 木質 07", "後調 東方 05", "後調 木質 04"],
+        "logic": "流動的自然氣息與感性木質，共鳴藝術性的感官體驗。"
     },
-    "ESTP": {
-        "title": "無畏企業家", "intro": "無畏行動派，在感官世界中冒險與挑戰。",
-        "top": ["辛辣 05", "柑橘 03", "清新 04", "草本 02"],
-        "mid": ["柑橘 03", "辛辣 02", "木質 05", "清新 02"],
-        "base": ["東方 07", "木質 12", "東方 06", "木質 07"],
-        "logic": "能量十足的前調與野性基底，奠定您勇往直前的核心。"
+    "ESTP (企業家)": {
+        "title": "大膽的開拓者",
+        "top": ["前調 柑橘 04", "前調 柑苔 01", "前調 芳香 04"],
+        "mid": ["中調 果香 07", "中調 果香 08", "中調 果香 13"],
+        "base": ["後調 東方 07", "後調 東方 09", "後調 木質 12"],
+        "logic": "能量爆發的柑橘與具有侵略性的東方調，展現冒險精神。"
     },
-    "ESFP": {
-        "title": "閃耀表演者", "intro": "社交明星，樂觀且具備強大生命感染力。",
-        "top": ["果香 09", "柑橘 01", "果香 05", "清新 04"],
-        "mid": ["花香 10", "花香 15", "果香 06", "花香 11"],
-        "base": ["東方 01", "東方 05", "麝香 03", "東方 04"],
-        "logic": "歡樂華麗的甜美氛圍，將您的閃耀瞬間變為精彩回憶。"
+    "ESFP (表演者)": {
+        "title": "閃耀的社交星",
+        "top": ["前調 柑橘 02", "前調 柑橘 04", "前調 果香 04"],
+        "mid": ["中調 花香 10", "中調 花香 13", "中調 果香 15"],
+        "base": ["後調 東方 11", "後調 東方 06", "後調 東方 01"],
+        "logic": "華麗奪目的花果香，讓每個瞬間都像是在舞台中央。"
     },
-    "INTP": {
-        "title": "邏輯學家", "intro": "沉思創造家，對知識與邏輯有無窮渴求。",
-        "top": ["草本 08", "清新 07", "柑橘 05", "草本 03"],
-        "mid": ["清新 07", "辛辣 01", "木質 11", "清新 05"],
-        "base": ["木質 14", "東方 09", "木質 12", "木質 10"],
-        "logic": "深邃冷靜的層次，支撐您在智慧海洋中的沉澱與深掘。"
+    "INTP (邏輯學家)": {
+        "title": "冷靜的思考者",
+        "top": ["前調 芳香 01", "前調 芳香 09", "前調 柑苔 04"],
+        "mid": ["中調 果香 14", "中調 花香 06", "中調 果香 09"],
+        "base": ["後調 木質 06", "後調 木質 11", "後調 東方 02"],
+        "logic": "低調且神祕的沉香與茶香，支撐起無邊無際的思考海洋。"
     }
 }
 
-# --- 介面呈現 ---
-st.title("🧪 Aroma's Secret")
-st.subheader("AI 靈魂調香處方箋 (專業全人格正式版)")
+# ==========================================
+# 核心邏輯處理函數
+# ==========================================
+def translate_scents(code_list):
+    """
+    優化後的翻譯函數：
+    1. 隱藏「前調 芳香 01」等編號。
+    2. 標題僅顯示「優雅女人」等名稱。
+    3. 自動關聯心理映射描述。
+    """
+    html_snippets = []
+    for i, code in enumerate(code_list):
+        # 抓取完整的字典資訊
+        full_info = scent_map.get(code, f"{code} (專屬配方)")
+        
+        # --- 核心邏輯：拆分「名稱」與「成分描述」 ---
+        # 假設格式為：富家千金 (小豆蔻/烏龍茶)
+        if " (" in full_info:
+            display_name, ingredients = full_info.split(" (", 1)
+            ingredients = "(" + ingredients # 補回括號
+        else:
+            display_name, ingredients = full_info, ""
+        
+        # 根據編號抓取心理映射描述
+        trait_desc = "這款香氣能平衡能量，展現獨特氣場。"
+        for key in personality_traits:
+            if key in code:
+                trait_desc = personality_traits[key]
+                break
 
-# 1. 輸入區
-col1, col2 = st.columns(2)
-with col1:
-    birthday = st.date_input("選擇出生年月日", value=date(2000, 1, 1))
-with col2:
-    mbti_choice = st.selectbox("您的 MBTI", list(mbti_db.keys()))
+        # 組合精美 HTML 區塊
+        snippet = f"""
+        <div style='margin-bottom:12px; padding: 10px; border-radius: 10px; background: rgba(255,255,255,0.45); border: 0.5px solid #eee;'>
+            <div style='color: #8B4513; font-weight: bold; font-size: 14px;'>⭐ 方案 {i+1}: {display_name}</div>
+            <div style='font-size: 11px; color: #666; margin-top: 2px;'>{ingredients}</div>
+            <div style='font-size: 10px; color: #9E7E6B; margin-top: 5px; border-top: 0.5px solid #E0D5C1; padding-top: 5px; line-height: 1.4;'>
+                <i><b>心理映射：</b>{trait_desc}</i>
+            </div>
+        </div>
+        """
+        html_snippets.append(snippet)
+    return "".join(html_snippets)
 
-# 預計算變量，防止顯示報錯
-num = get_life_number(birthday)
-zodiac = get_zodiac(birthday.month, birthday.day)
-res = mbti_db.get(mbti_choice)
+def get_life_num(bday):
+    d = "".join(filter(str.isdigit, str(bday)))
+    while len(d) > 1: d = str(sum(int(x) for x in d))
+    return d
 
-st.divider()
+def get_zodiac(m, d):
+    signs = [(1,20,"摩羯座"),(2,19,"水瓶座"),(3,21,"雙魚座"),(4,20,"白羊座"),(5,21,"金牛座"),(6,22,"雙子座"),(7,23,"巨蟹座"),(8,23,"獅子座"),(9,23,"處女座"),(10,24,"天秤座"),(11,23,"天蠍座"),(12,22,"射手座"),(12,31,"摩羯座")]
+    for mm, dd, s in signs:
+        if m < mm or (m == mm and d <= dd): return s
+    return "摩羯座"
+def get_chinese_zodiac(year):
+    animals = ["猴", "雞", "狗", "豬", "鼠", "牛", "虎", "兔", "龍", "蛇", "馬", "羊"]
+    return animals[year % 12]
 
-# 2. 顯示按鈕與結果
+# ==========================================
+# 介面顯示區
+# ==========================================
+st.title("🧪 Aroma's Secret Lab")
+
+c1, c2 = st.columns(2)
+with c1:
+    birthday = st.date_input("📅 出生年月日", value=date(2000, 1, 1))
+    occasion = st.selectbox("🏙️ 使用場合", ["日常通勤", "約會派對", "商務正式", "運動休閒", "冥想睡眠"])
+with c2:
+    mbti_choice = st.selectbox("🧠 MBTI 人格", list(mbti_db.keys()))
+
+perfume_logic = {
+    "日常通勤": {"type": "EDT", "strength": "10%", "ratio": [3, 4, 3], "oil": 1.0},
+    "約會派對": {"type": "EDP", "strength": "15%", "ratio": [2, 3, 5], "oil": 1.5},
+    "商務正式": {"type": "EDP", "strength": "12%", "ratio": [2.5, 4.5, 3], "oil": 1.2},
+    "運動休閒": {"type": "Cologne", "strength": "5%", "ratio": [5, 3, 2], "oil": 0.8},
+    "冥想睡眠": {"type": "Mist", "strength": "5%", "ratio": [2, 5, 3], "oil": 0.8}
+}
+
 if st.button("🔮 啟動 AI 深度分析"):
-    with st.spinner("正在演算靈魂路徑與香氣共振..."):
-        time.sleep(1.2)
+    res = mbti_db[mbti_choice]
+    occ = perfume_logic[occasion]
+    l_num = get_life_num(birthday)
+    z_name = get_zodiac(birthday.month, birthday.day)
+    c_zodiac = get_chinese_zodiac(birthday.year) 
+    
+    # --- [新增] 獲取五行屬性 ---
+    c_element = zodiac_elements[c_zodiac]
+    element_desc = element_traits[c_element]
     
     st.balloons()
-    
-    # 靈魂解析區
-    with st.expander("✨ 查看您的靈魂數據解讀", expanded=True):
-        st.write(f"### {zodiac} · {num}號人")
-        st.write(f"**人格原型：** {res['title']} ({mbti_choice})")
-        st.write(f"**深度寫照：** {res['intro']}")
 
-    # 專業處方卡片
-    st.markdown(f"""
-    <div style="background-color: white; padding: 25px; border-radius: 20px; border: 2px solid #1a1a1a; box-shadow: 10px 10px 0px #eee;">
-        <h2 style="margin:0; color: #8B4513;">🧬 AI 專業調香處方</h2>
-        <hr style="border: 0.5px solid #eee;">
+    # 更新後的卡片 HTML (加上五行標籤)
+    card_html = f"""
+    <div style="background-color: white; padding: 25px; border-radius: 20px; border: 2px solid #1a1a1a; box-shadow: 8px 8px 0px #F5F5F5; color: #333;">
+        <h2 style="margin:0; color: #8B4513;">🧬 AI 全維度調香處方</h2>
         
-        <div style="margin-bottom: 15px;">
-            <p style="font-size: 16px; font-weight: bold; color: #2C3E50;">【前調建議】</p>
-            <p style="font-size: 14px; color: #555;">{", ".join(res['top'])}</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px;">
+            <span style="background: #E8F0FE; padding: 4px 10px; border-radius: 12px; font-size: 11px;"><b>🌠 星座：</b>{z_name}</span>
+            <span style="background: #FFF0F0; padding: 4px 10px; border-radius: 12px; font-size: 11px;"><b>🏮 生肖：</b>{c_zodiac}({c_element}行)</span>
+            <span style="background: #F0FDF4; padding: 4px 10px; border-radius: 12px; font-size: 11px;"><b>🔢 靈數：</b>{l_num}號人</span>
         </div>
 
-        <div style="margin-bottom: 15px;">
-            <p style="font-size: 16px; font-weight: bold; color: #2C3E50;">【中調建議】</p>
-            <p style="font-size: 14px; color: #555;">{", ".join(res['mid'])}</p>
+        <div style="font-size: 12px; color: #666; margin-top: 15px; line-height: 1.5; background: #FAFAFA; padding: 10px; border-radius: 10px;">
+            • <b>{z_name}：</b>{zodiac_db[z_name]}<br>
+            • <b>生肖{c_zodiac}({c_element})：</b>{zodiac_animal_db[c_zodiac]} {element_desc}<br>
+            • <b>生命靈數：</b>{life_num_detail[l_num]}
         </div>
 
-        <div style="margin-bottom: 15px;">
-            <p style="font-size: 16px; font-weight: bold; color: #2C3E50;">【後調建議】</p>
-            <p style="font-size: 14px; color: #555;">{", ".join(res['base'])}</p>
+        <hr style="margin: 18px 0; border: 0.5px dashed #ccc;">
+        
+        <div style="background: #F0F4F8; padding: 10px; border-radius: 8px; margin-bottom: 12px;">
+            <p style="font-size: 13px; margin:0;"><b>🎯 推薦濃度：{occ['type']} ({occ['strength']}) - 【{occasion}】</b></p>
+        </div>
+
+        <div style="margin-bottom: 8px; border-left: 5px solid #D4AF37; padding-left: 10px; background: #FFF9F0; padding-top: 6px; padding-bottom: 6px;">
+            <p style="font-size: 13px; font-weight: bold; margin:0 0 5px 0;">【前調建議】(三選一)</p>
+            {translate_scents(res['top'])}
+        </div>
+        <div style="margin-bottom: 8px; border-left: 5px solid #D4AF37; padding-left: 10px; background: #FFF9F0; padding-top: 6px; padding-bottom: 6px;">
+            <p style="font-size: 13px; font-weight: bold; margin:0 0 5px 0;">【中調建議】(三選一)</p>
+            {translate_scents(res['mid'])}
+        </div>
+        <div style="margin-bottom: 8px; border-left: 5px solid #D4AF37; padding-left: 10px; background: #FFF9F0; padding-top: 6px; padding-bottom: 6px;">
+            <p style="font-size: 13px; font-weight: bold; margin:0 0 5px 0;">【後調建議】(三選一)</p>
+            {translate_scents(res['base'])}
         </div>
         
-        <p style="font-size: 14px; font-style: italic; color: #888; border-top: 1px dashed #ddd; padding-top: 10px;">
-            <b>調香美學建議：</b>{res['logic']}
+        <p style="font-size: 11px; font-style: italic; color: #888; border-top: 1px dashed #ddd; padding-top: 8px; margin-top: 8px;">
+            <b>💡 調香邏輯：</b>{res['logic']}
         </p>
     </div>
-    """, unsafe_allow_html=True)
+    """.replace("\n", "")
 
-    # 3. 比例建議
-    st.write("### 🧪 精準配比建議 (10ml)")
+    st.markdown(card_html, unsafe_allow_html=True)
+
+
+    # 配比顯示
+    st.write(f"### 🧪 10ml 調製比例 ({occ['type']})")
     v1, v2, v3 = st.columns(3)
-    v1.metric("前調", "2.0ml")
-    v2.metric("中調", "3.5ml")
-    v3.metric("後調", "4.5ml")
-    
-    st.success("💡 提示：AI 推薦多重風味供您試聞，您可以現場挑選最喜歡的 1-2 款進行融合。")
-    
+    v1.metric("前調 ml", f"{occ['ratio'][0]/10 * occ['oil']:.2f}")
+    v2.metric("中調 ml", f"{occ['ratio'][1]/10 * occ['oil']:.2f}")
+    v3.metric("後調 ml", f"{occ['ratio'][2]/10 * occ['oil']:.2f}")
+
