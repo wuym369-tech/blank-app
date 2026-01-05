@@ -1,11 +1,15 @@
 #目前是香調都進去五行也進去，現在要去新增調香比例要對
 #現在新增比例對了
+#現在要把各個星座生肖的特質再多一點
 import streamlit as st
 from datetime import date
+import re
 
-# 1. 頁面配置
+# 1. 頁面配置 (必須放在最頂端)
 st.set_page_config(page_title="Aroma's Secret Lab", layout="centered")
 
+# ==========================================
+# 資料庫區 (放在最前面確保全域可用)
 # ==========================================
 # 資料庫 A：78 種氣味清單與完整描述
 # ==========================================
@@ -169,70 +173,55 @@ scent_descriptions = {
     "後調 木質 13": "純淨的檀香，溫潤如玉，是時間沉澱下來的最溫柔的底氣。"
 }
 
-# ==========================================
-# # 資料庫 B：星座與心理特徵描述
-# ==========================================
-zodiac_db = {
-    "白羊座": "天生的開拓者，充滿勇氣與活力。", "金牛座": "感官美好的守護者，追求質感生活。",
-    "雙子座": "靈動的思想傳播者，充滿好奇心。", "巨蟹座": "細膩的療癒者，重視歸屬與情感。",
-    "獅子座": "自信的領導者，散發強大創造力。", "處女座": "追求完美的工匠，擁有極致觀察力。",
-    "天秤座": "和諧的協調者，追求優雅與平衡。", "天蠍座": "深邃的洞察者，意志強大且神祕。",
-    "射手座": "真理的追求者，熱愛自由與冒險。", "摩羯座": "踏實的攀登者，擁有耐心與責任。",
-    "水瓶座": "獨立的革新者，思維超前且獨特。", "雙魚座": "靈性的藝術家，靈魂充滿共情能力。"
+
+# 比例模型
+model_logic = {
+    "黃金平衡型 (20:35:45)": {"ratios": [0.20, 0.35, 0.45], "desc": "最穩定的結構，確保香氣層次銜接平滑。"},
+    "清新爆發型 (40:35:25)": {"ratios": [0.40, 0.35, 0.25], "desc": "強化前調爆發力，適合清爽提神需求。"},
+    "深邃留香型 (15:30:55)": {"ratios": [0.15, 0.30, 0.55], "desc": "加重後調比重，展現神祕且持久的魅力。"}
 }
 
-personality_traits = {
-    "芳香": "展現冷靜知性，適合追求邏輯與秩序的你。",
-    "柑橘": "象徵親和活力，詮釋你開朗具感染力的性格。",
-    "柑苔": "代表獨立探求，符合你追求獨特的自由靈魂。",
-    "果香": "充滿生活情趣，對應你熱情且好奇的特質。",
-    "花香": "展現優雅感性，呼應你細膩且富共情的內在。",
-    "東方": "散發神祕權威，適合意志強大且深邃的你。",
-    "木質": "象徵務實穩定，展現值得信賴的執行者風範。"
-}
-# --- [新增] 生肖資料庫 ---
-zodiac_animal_db = {
-    "鼠": "機敏靈活，觀察力極強，具備開拓精神。", "牛": "勤奮踏實，意志堅定，值得信賴。",
-    "虎": "勇猛果敢，具備領袖氣質與冒險精神。", "兔": "溫柔文雅，心思細膩，追求和諧生活。",
-    "龍": "充滿活力，志向遠大，具備天生的影響力。", "蛇": "冷靜神祕，直覺敏銳，處事精明幹練。",
-    "馬": "熱情奔放，嚮往自由，行動力與生命力十足。", "羊": "仁慈體貼，富有藝術氣息與同情心。",
-    "猴": "聰明伶俐，應變力強，充滿創意與好奇心。", "雞": "勤奮負責，講求效率，擁有獨到的審美。",
-    "狗": "忠誠可靠，正義感強，是值得交心的夥伴。", "豬": "真誠厚道，性情豁達，天生自帶福氣。"
-}
-# --- [新增] 生肖五行對應表 ---
-zodiac_elements = {
-    "鼠": "水", "豬": "水",
-    "虎": "木", "兔": "木",
-    "蛇": "火", "馬": "火",
-    "猴": "金", "雞": "金",
-    "牛": "土", "龍": "土", "羊": "土", "狗": "土"
-}
-
-element_traits = {
-    "水": "代表靈性與智慧，流動且具備極強的適應力。",
-    "木": "代表成長與生機，充滿仁慈之心與向上攀升的能量。",
-    "火": "代表熱情與禮儀，散發著溫暖與照亮他人的光芒。",
-    "金": "代表剛毅與果斷，擁有高尚的節操與精準的決策力。",
-    "土": "代表厚重與信用，象徵著值得信賴的包容力與穩定感。"
-}
-# --- [強化] 生命靈數資料庫 ---
-life_num_detail = {
-    "1": "開創數：象徵獨立、自信與天生的領導力。", "2": "合作數：象徵和諧、體貼與優異的協調性。",
-    "3": "創意數：象徵熱情、表達與無窮的想像力。", "4": "執行數：象徵穩定、秩序與紮實的實踐力。",
-    "5": "冒險數：象徵自由、多變與勇於挑戰的靈魂。", "6": "奉獻數：象徵責任、愛心與對美好的執著。",
-    "7": "探求數：象徵智慧、內省與對真理的追求。", "8": "權威數：象徵豐盛、決策與強大的掌控力。",
-    "9": "博愛數：象徵慈悲、理想與跨越邊界的視野。"
-}
-# 專業調香配比邏輯
+# 場合對應總量
 perfume_logic = {
-    "日常通勤": {"type": "EDT (淡香水)", "total_oil": 1.0, "ratios": [0.3, 0.4, 0.3], "desc": "3:4:3 黃金比例，確保層次平穩過渡。"},
-    "約會派對": {"type": "EDP (淡香精)", "total_oil": 1.5, "ratios": [0.2, 0.3, 0.5], "desc": "強化後調比重，營造迷人長效氣場。"},
-    "商務正式": {"type": "EDP (淡香精)", "total_oil": 1.2, "ratios": [0.2, 0.5, 0.3], "desc": "著重中調心臟，展現穩重且具信賴感的氣息。"},
-    "運動休閒": {"type": "Cologne (古龍水)", "total_oil": 0.8, "ratios": [0.5, 0.3, 0.2], "desc": "高比例前調，釋放清爽爆發力。"},
-    "冥想睡眠": {"type": "Mist (香氛噴霧)", "total_oil": 0.6, "ratios": [0.1, 0.6, 0.3], "desc": "療癒中調為主，營造安全包裹感。"}
+    "日常通勤": {"type": "EDT", "total_oil": 1.0},
+    "約會派對": {"type": "EDP", "total_oil": 1.5},
+    "商務正式": {"type": "EDP", "total_oil": 1.2},
+    "運動休閒": {"type": "Cologne", "total_oil": 0.8},
+    "冥想睡眠": {"type": "Mist", "total_oil": 0.6}
 }
 
-# ==========================================
+# 星座香味變數
+zodiac_scents = {
+    "白羊座": {"top": "前調 芳香 04", "reason": "馬郁蘭的藥草感對應不熄的勇氣。"},
+    "金牛座": {"top": "前調 芳香 05", "reason": "梔子花的細膩呼應對感官品質的追求。"},
+    "雙子座": {"top": "前調 芳香 02", "reason": "羅勒的靈動詮釋跳躍的好奇心。"},
+    "巨蟹座": {"top": "前調 芳香 01", "reason": "清冷烏龍後的溫暖，營造家的歸屬感。"},
+    "獅子座": {"top": "前調 芳香 04", "reason": "展現天生的領導者與創造力氣場。"},
+    "處女座": {"top": "前調 芳香 06", "reason": "茶樹的純淨呼應對完美的堅持。"},
+    "天秤座": {"top": "前調 芳香 09", "reason": "綠茶優雅達成內外極致平衡。"},
+    "天蠍座": {"top": "前調 芳香 04", "reason": "深邃的神祕直覺能量。"},
+    "射手座": {"top": "前調 芳香 08", "reason": "馬鞭草的清爽追尋靈魂自由。"},
+    "摩羯座": {"top": "前調 芳香 01", "reason": "沈穩結構展現踏實的責任感。"},
+    "水瓶座": {"top": "前調 芳香 07", "reason": "薄荷的清爽致敬獨立個性的靈魂。"},
+    "雙魚座": {"top": "前調 芳香 03", "reason": "野花的夢幻讓藝術靈魂在夢境呼吸。"}
+}
+
+# 五行香味變數 (生肖)
+element_scents = {
+    "水": {"base": "後調 東方 02", "trait": "靈性智慧與流動感"},
+    "木": {"base": "後調 木質 02", "trait": "沈靜森林的生機活力"},
+    "火": {"base": "後調 東方 06", "trait": "暖陽般的熱情擴散力"},
+    "金": {"base": "後調 木質 05", "trait": "雪松的剛毅與決策力"},
+    "土": {"base": "後調 木質 08", "trait": "寺廟檀香的穩定信賴感"}
+}
+
+# 命理與性格文本
+zodiac_db = {"白羊座": "勇氣與活力", "金牛座": "質感生活", "雙子座": "好奇靈動", "巨蟹座": "細膩療癒", "獅子座": "自信領導", "處女座": "追求完美", "天秤座": "優雅平衡", "天蠍座": "神祕洞察", "射手座": "冒險自由", "摩羯座": "踏實責任", "水瓶座": "獨立革新", "雙魚座": "靈性藝術"}
+zodiac_elements = {"鼠": "水", "豬": "水", "虎": "木", "兔": "木", "蛇": "火", "馬": "火", "猴": "金", "雞": "金", "牛": "土", "龍": "土", "羊": "土", "狗": "土"}
+zodiac_animal_db = {"鼠": "機敏", "牛": "踏實", "虎": "果敢", "兔": "文雅", "龍": "活力", "蛇": "冷靜", "馬": "熱情", "羊": "體貼", "猴": "聰明", "雞": "負責", "狗": "忠誠", "豬": "真誠"}
+element_traits = {"水": "智慧適應", "木": "成長生機", "火": "熱情溫暖", "金": "剛毅果斷", "土": "穩定信賴"}
+life_num_detail = {"1": "獨立領導", "2": "和諧合作", "3": "創意表達", "4": "紮實執行", "5": "自由冒險", "6": "責任奉獻", "7": "智慧探求", "8": "權威決策", "9": "慈悲理想"}
+
 # 資料庫 C：16 型人格建議 (每項 3 個香味)
 # ==========================================
 mbti_db = {
@@ -351,31 +340,10 @@ mbti_db = {
 }
 
 
-# ==========================================
-# 工具函數
-# ==========================================
-def translate_scents(code_list):
-    html_snippets = []
-    for i, code in enumerate(code_list):
-        full_info = scent_map.get(code, f"{code} (專屬配方)")
-        name = full_info.split(" (")[0] if " (" in full_info else full_info
-        ing = "(" + full_info.split(" (")[1] if " (" in full_info else ""
-        desc = scent_descriptions.get(code, "這款香氣能優雅平衡你的內在能量。")
-        
-        snippet = f"""
-        <div style='margin-bottom:8px; padding:10px; border-radius:10px; background:rgba(255,255,255,0.45); border:0.5px solid #eee;'>
-            <div style='color: #8B4513; font-weight: bold; font-size: 14px;'>選項 {i+1}: {name}</div>
-            <div style='font-size: 11px; color: #666;'>{ing}</div>
-            <div style='font-size: 10px; color: #9E7E6B; margin-top:4px;'><i>{desc}</i></div>
-        </div>
-        """
-        html_snippets.append(snippet)
-    return "".join(html_snippets)
 
-def get_life_num(bday):
-    d = "".join(filter(str.isdigit, str(bday)))
-    while len(d) > 1: d = str(sum(int(x) for x in d))
-    return d
+# ==========================================
+# 函數定義區 (必須在呼叫前定義)
+# ==========================================
 
 def get_zodiac(m, d):
     signs = [(1,20,"摩羯座"),(2,19,"水瓶座"),(3,21,"雙魚座"),(4,20,"白羊座"),(5,21,"金牛座"),(6,22,"雙子座"),(7,23,"巨蟹座"),(8,23,"獅子座"),(9,23,"處女座"),(10,24,"天秤座"),(11,23,"天蠍座"),(12,22,"射手座"),(12,31,"摩羯座")]
@@ -383,13 +351,33 @@ def get_zodiac(m, d):
         if m < mm or (m == mm and d <= dd): return s
     return "摩羯座"
 
+def get_life_num(bday):
+    d = "".join(filter(str.isdigit, str(bday)))
+    while len(d) > 1: d = str(sum(int(x) for x in d))
+    return d
+
 def get_chinese_zodiac(year):
     animals = ["猴", "雞", "狗", "豬", "鼠", "牛", "虎", "兔", "龍", "蛇", "馬", "羊"]
     return animals[year % 12]
 
+def translate_scents(code_list):
+    html_snippets = []
+    for i, code in enumerate(code_list):
+        full_info = scent_map.get(code, f"{code} (專屬配方)")
+        name = full_info.split(" (")[0] if " (" in full_info else full_info
+        ing = "(" + full_info.split(" (")[1] if " (" in full_info else ""
+        desc = scent_descriptions.get(code, "這款香氣能優雅平衡你的內在能量。")
+        html_snippets.append(f"""
+        <div style='margin-bottom:8px; padding:10px; border-radius:10px; background:rgba(255,255,255,0.4); border:0.5px solid #eee;'>
+            <div style='color: #8B4513; font-weight: bold;'>選項 {i+1}: {name} {ing}</div>
+            <div style='font-size: 10px; color: #9E7E6B;'><i>{desc}</i></div>
+        </div>""")
+    return "".join(html_snippets)
+
 # ==========================================
-# 介面顯示區
+# 介面與按鈕邏輯
 # ==========================================
+
 st.title("🧪 Aroma's Secret Lab")
 
 c1, c2 = st.columns(2)
@@ -398,75 +386,63 @@ with c1:
     occasion = st.selectbox("🏙️ 使用場合", list(perfume_logic.keys()))
 with c2:
     mbti_choice = st.selectbox("🧠 MBTI 人格", list(mbti_db.keys()))
+    selected_model = st.selectbox("📐 香氣結構模型", list(model_logic.keys()))
 
 if st.button("🔮 啟動 AI 深度分析"):
-    # 命理與性格運算
-    l_num = get_life_num(birthday)
+    # 此處函數已經在上方定義，不會再報 NameError
     z_name = get_zodiac(birthday.month, birthday.day)
+    l_num = get_life_num(birthday)
     c_zodiac = get_chinese_zodiac(birthday.year)
     c_element = zodiac_elements[c_zodiac]
     
-    # 抓取資料庫資料
     res = mbti_db[mbti_choice]
     occ_data = perfume_logic[occasion]
+    model_data = model_logic[selected_model]
+    z_scent = zodiac_scents[z_name]
+    e_scent = element_scents[c_element]
     
-    # 配比運算
-    r = occ_data["ratios"]         
+    # 全維度配方整合 (星座前調 + MBTI中調 + 五行後調)
+    final_top = [z_scent["top"]] + res['top']
+    final_mid = res['mid']
+    final_base = [e_scent["base"]] + res['base']
+
+    # 比例與滴數運算
+    r = model_data["ratios"]         
     total = occ_data["total_oil"]  
     top_ml, mid_ml, base_ml = round(total*r[0], 2), round(total*r[1], 2), round(total*r[2], 2)
-    df = 25 # 滴數換算
-    
-    st.balloons()
+    df = 25 # 每 ml 約 25 滴
 
-    # --- 顯示診斷處方卡片 ---
+    # 渲染結果卡片
     card_html = f"""
     <div style="background: white; padding: 25px; border-radius: 20px; border: 2px solid #1a1a1a; box-shadow: 8px 8px 0px #F5F5F5; color: #333;">
-        <h2 style="margin:0; color: #8B4513; text-align:center;">🧬 AI 全維度調香處方</h2>
-        
-        <div style="display: flex; justify-content: center; gap: 8px; margin: 15px 0;">
-            <span style="background: #E8F0FE; padding: 4px 10px; border-radius: 12px; font-size: 11px;"><b>🌠 星座：</b>{z_name}</span>
-            <span style="background: #FFF0F0; padding: 4px 10px; border-radius: 12px; font-size: 11px;"><b>🏮 生肖：</b>{c_zodiac}({c_element})</span>
-            <span style="background: #F0FDF4; padding: 4px 10px; border-radius: 12px; font-size: 11px;"><b>🔢 靈數：</b>{l_num}號人</span>
+        <h2 style="text-align:center; color:#8B4513;">🧬 AI 全維度專屬配方</h2>
+        <div style="display:flex; justify-content:center; gap:10px; margin:15px 0;">
+            <span style="background:#E3F2FD; padding:4px 10px; border-radius:10px; font-size:11px;">🌠 {z_name}</span>
+            <span style="background:#F3E5F5; padding:4px 10px; border-radius:10px; font-size:11px;">🏮 {c_zodiac}({c_element})</span>
+            <span style="background:#E8F5E9; padding:4px 10px; border-radius:10px; font-size:11px;">🔢 靈數 {l_num}</span>
         </div>
-
-        <div style="font-size: 12px; color: #666; line-height: 1.6; background: #FAFAFA; padding: 12px; border-radius: 10px; margin-bottom: 20px;">
-            • <b>性格本質：</b>{zodiac_db[z_name]} & {zodiac_animal_db[c_zodiac]}<br>
-            • <b>能量屬性：</b>五行屬【{c_element}】，代表 {element_traits[c_element]}<br>
-            • <b>人生課題：</b>{life_num_detail[l_num]}
+        <div style="background:#EBF8FF; padding:12px; border-radius:10px; margin-bottom:15px; border-left:5px solid #3182CE; font-size:12px;">
+            <b>✨ 能量調和報告：</b><br>
+            星座 {z_name} 賦予前調 {z_scent['reason']}<br>
+            生肖五行 {c_element} 為底蘊注入 {e_scent['trait']}。
         </div>
-
-        <div style="background: #FFF9F0; padding: 12px; border-radius: 10px; border-left: 5px solid #D4AF37;">
-            <p style="font-size: 13px; font-weight: bold; margin:0;">【前調建議】(三選一)</p>
-            {translate_scents(res['top'])}
+        <div style="background:#FFF9F0; padding:10px; border-radius:10px;">
+            <p style="font-weight:bold; margin:0;">【前調：星座氣質】</p>{translate_scents(final_top)}
+            <p style="font-weight:bold; margin:10px 0 0 0;">【中調：性格核心】</p>{translate_scents(final_mid)}
+            <p style="font-weight:bold; margin:10px 0 0 0;">【後調：靈魂底蘊】</p>{translate_scents(final_base)}
         </div>
-        <div style="background: #FFF9F0; padding: 12px; border-radius: 10px; border-left: 5px solid #D4AF37; margin-top:10px;">
-            <p style="font-size: 13px; font-weight: bold; margin:0;">【中調建議】(三選一)</p>
-            {translate_scents(res['mid'])}
-        </div>
-        <div style="background: #FFF9F0; padding: 12px; border-radius: 10px; border-left: 5px solid #D4AF37; margin-top:10px;">
-            <p style="font-size: 13px; font-weight: bold; margin:0;">【後調建議】(三選一)</p>
-            {translate_scents(res['base'])}
-        </div>
-        
-        <p style="font-size: 11px; font-style: italic; color: #888; border-top: 1px dashed #ddd; padding-top: 10px; margin-top: 15px;">
-            <b>💡 AI 調香邏輯：</b>{res['logic']}
-        </p>
     </div>
-    """.replace("\n", "")
-
+    """
     st.markdown(card_html, unsafe_allow_html=True)
-
-    # --- 專業調配建議區 ---
+    
+    # 配比顯示區
     st.write("---")
-    st.subheader("🧪 專業調配實驗室 (10ml 基準)")
-    st.info(f"💡 **調香師筆記：** {occ_data['desc']}")
+    st.subheader(f"🧪 專業配比建議：{selected_model}")
+    st.info(f"💡 **結構說明：** {model_data['desc']}")
+    c1, c2, c3 = st.columns(3)
+    c1.metric("前調建議量", f"{top_ml} ml", f"{round(top_ml*df)} 滴")
+    c2.metric("中調建議量", f"{mid_ml} ml", f"{round(mid_ml*df)} 滴")
+    c3.metric("後調建議量", f"{base_ml} ml", f"{round(base_ml*df)} 滴")
     
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("前調建議量", f"{top_ml} ml", f"{round(top_ml * df)} 滴")
-    with col2:
-        st.metric("中調建議量", f"{mid_ml} ml", f"{round(mid_ml * df)} 滴")
-    with col3:
-        st.metric("後調建議量", f"{base_ml} ml", f"{round(base_ml * df)} 滴")
-    
-    st.warning("🧴 **小叮嚀：** 將上述滴數加入後，請用 95% 香水酒精補足至 10ml 刻度即可。")
+    st.warning(f"🧴 **稀釋指南：** 目前總量需調製為 {occ_data['type']}。請加入上述精油後，補足酒精至 10ml。")
+    st.balloons()
