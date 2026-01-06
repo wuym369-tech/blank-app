@@ -3,6 +3,7 @@
 #現在要把各個星座生肖的特質再多一點
 #現在要把最後動畫做好一點
 #新增了測試人格，現在在新增對應五行幸運色
+#新增了測試跟五行，現在新增對香味的喜愛程度
 import streamlit as st
 from datetime import date
 import time
@@ -207,6 +208,191 @@ zodiac_animal_db = {
 }
 
 zodiac_elements = {"鼠": "水", "豬": "水", "虎": "木", "兔": "木", "蛇": "火", "馬": "火", "猴": "金", "雞": "金", "牛": "土", "龍": "土", "羊": "土", "狗": "土"}
+
+# ==========================================
+# 數據庫 D：生命靈數個性與建議
+# ==========================================
+life_number_db = {
+    "1": {
+        "trait": "天生的領導者與開創者",
+        "desc": "你擁有強烈的獨立意識與開創精神，不喜歡被約束，總是走在前端。你的內在燃燒著一股不服輸的火焰，渴望證明自己的價值。",
+        "advice": "今年宜把握機會展現領導力，但切記剛柔並濟。過度強勢可能讓貴人遠離，學會傾聽他人意見，成功將水到渠成。感情上主動出擊會有好結果。"
+    },
+    "2": {
+        "trait": "溫柔的協調者與療癒師",
+        "desc": "你天生敏感細膩，擅長察覺他人情緒，是團體中的潤滑劑。你追求和諧與平衡，不喜歡衝突，總是默默付出。",
+        "advice": "今年是建立深度關係的好時機，但要注意不要過度委屈自己。學會設立界限，你的溫柔才不會成為負擔。財運平穩，合作投資優於單打獨鬥。"
+    },
+    "3": {
+        "trait": "創意的表達者與樂觀主義者",
+        "desc": "你充滿創造力與想像力，擁有感染他人的魅力。你熱愛表達，無論是藝術、寫作或口才都有天賦，是天生的表演者。",
+        "advice": "今年創意能量爆發，適合展開藝術相關計畫或副業。但要小心三分鐘熱度，專注完成一件事比開始十件事更重要。桃花運旺，但需分辨真心。"
+    },
+    "4": {
+        "trait": "穩健的建築師與守護者",
+        "desc": "你務實可靠，是值得信賴的夥伴。你相信腳踏實地的力量，願意付出努力建構穩固的基礎，是團隊中的定海神針。",
+        "advice": "今年適合打穩根基，無論是事業、健康或財務都宜穩紮穩打。不要急於求成，你的堅持終將開花結果。注意身體保養，尤其是肩頸與腸胃。"
+    },
+    "5": {
+        "trait": "自由的冒險家與變革者",
+        "desc": "你渴望自由與變化，討厭一成不變的生活。你擁有強烈的好奇心，喜歡探索未知，是勇於突破框架的先鋒。",
+        "advice": "今年變動能量強，可能有旅行、搬遷或轉換跑道的機會。擁抱變化但不要衝動行事，做好規劃再出發。感情上可能遇到異地或異國緣分。"
+    },
+    "6": {
+        "trait": "愛的給予者與美的追求者",
+        "desc": "你重視家庭與責任，擁有強烈的愛與奉獻精神。你追求美好事物，對生活品質有要求，是天生的照顧者與美學家。",
+        "advice": "今年家庭運勢重要，可能有婚嫁、添丁或購屋等喜事。但要注意不要過度干涉他人，愛是給予自由而非控制。財運與美相關的投資有利。"
+    },
+    "7": {
+        "trait": "深邃的思想家與靈性探索者",
+        "desc": "你擁有深刻的洞察力與分析能力，喜歡獨處思考人生大哉問。你追求真理與智慧，內在世界豐富而神祕。",
+        "advice": "今年適合進修、研究或靈性成長，你的直覺特別準確。但要避免過度封閉自己，適時與人交流能帶來意想不到的啟發。健康上注意睡眠品質。"
+    },
+    "8": {
+        "trait": "權力的掌控者與物質的創造者",
+        "desc": "你擁有強大的執行力與商業頭腦，對成功有強烈渴望。你懂得運用資源，是天生的企業家與領袖，注定與財富有緣。",
+        "advice": "今年事業運強勁，有升遷加薪或創業良機。但權力越大責任越大，注意不要忽略家人感受。財運亨通但切忌貪婪，見好就收是智慧。"
+    },
+    "9": {
+        "trait": "博愛的理想主義者與療癒者",
+        "desc": "你擁有寬廣的胸懷與悲天憫人的情懷，渴望讓世界變得更好。你是天生的助人者，經常吸引需要幫助的人靠近。",
+        "advice": "今年是完成與放下的一年，舊的篇章即將結束，新的即將開始。學會釋懷過去的遺憾，你的善良終將得到宇宙的回報。公益活動會帶來好運。"
+    }
+}
+
+# ==========================================
+# 數據庫 E：2026 馬年幸運色
+# ==========================================
+horse_year_lucky_colors = {
+    # 生肖幸運色 (2026 馬年)
+    "zodiac": {
+        "鼠": {"colors": ["寶藍色", "銀白色"], "avoid": "紅色", "reason": "鼠馬相沖，宜用水色化解，藍色帶來冷靜與智慧。"},
+        "牛": {"colors": ["咖啡色", "米白色"], "avoid": "綠色", "reason": "牛與馬無刑沖，土色系穩固根基，帶來踏實能量。"},
+        "虎": {"colors": ["翠綠色", "橙紅色"], "avoid": "白色", "reason": "虎馬三合，火木相生，綠色與橙色助旺貴人運。"},
+        "兔": {"colors": ["淺粉色", "淡紫色"], "avoid": "深藍色", "reason": "兔與馬無大礙，柔和色調提升人緣與桃花運。"},
+        "龍": {"colors": ["金黃色", "酒紅色"], "avoid": "黑色", "reason": "龍馬精神相助，金色招財，酒紅增添尊貴氣場。"},
+        "蛇": {"colors": ["棗紅色", "紫紅色"], "avoid": "白色", "reason": "蛇馬六合大吉，紅紫色系強化這份貴人緣分。"},
+        "馬": {"colors": ["草綠色", "粉紅色"], "avoid": "藍色", "reason": "本命年宜低調，綠色帶來生機，粉色化解煞氣。"},
+        "羊": {"colors": ["橘橙色", "鵝黃色"], "avoid": "灰色", "reason": "羊馬三合，暖色調催旺這份好運，帶來喜悅能量。"},
+        "猴": {"colors": ["白色", "銀灰色"], "avoid": "紅色", "reason": "猴與馬相刑，金色系化解衝突，帶來冷靜思考。"},
+        "雞": {"colors": ["金色", "米黃色"], "avoid": "紅色", "reason": "雞馬無礙，金色招財納福，米黃增添穩重氣質。"},
+        "狗": {"colors": ["墨綠色", "橙色"], "avoid": "藍色", "reason": "狗馬三合，綠橙色系強化合作運與事業運。"},
+        "豬": {"colors": ["深藍色", "黑色"], "avoid": "黃色", "reason": "豬與馬無大沖，水色系帶來智慧，黑色穩定情緒。"}
+    },
+    # 靈數幸運色 (2026 馬年)
+    "life_number": {
+        "1": {"colors": ["正紅色", "金色"], "reason": "領導者能量需要正紅色的熱情與金色的權威加持。"},
+        "2": {"colors": ["粉紅色", "銀白色"], "reason": "協調者需要柔和色調，粉銀帶來和諧與溫柔力量。"},
+        "3": {"colors": ["橙色", "黃色"], "reason": "創意能量與暖色調共振，橙黃色激發靈感與表達力。"},
+        "4": {"colors": ["棕色", "深綠色"], "reason": "穩健能量需要大地色系，帶來扎根與安全感。"},
+        "5": {"colors": ["天藍色", "亮綠色"], "reason": "自由能量喜愛清新色調，藍綠色帶來冒險與突破。"},
+        "6": {"colors": ["粉紫色", "玫瑰金"], "reason": "愛的能量與浪漫色系共振，增添美感與家庭和諧。"},
+        "7": {"colors": ["靛藍色", "紫色"], "reason": "靈性能量需要深邃色調，紫藍色提升直覺與智慧。"},
+        "8": {"colors": ["黑色", "金色"], "reason": "權力能量與尊貴色系共振，黑金組合招財又穩重。"},
+        "9": {"colors": ["白色", "淺紫色"], "reason": "博愛能量需要純淨色調，白紫帶來療癒與慈悲力量。"}
+    }
+}
+
+# ==========================================
+# 數據庫 F：八字五行計算
+# ==========================================
+# 天干
+HEAVENLY_STEMS = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"]
+# 地支
+EARTHLY_BRANCHES = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"]
+# 天干五行
+STEM_ELEMENTS = {"甲": "木", "乙": "木", "丙": "火", "丁": "火", "戊": "土", "己": "土", "庚": "金", "辛": "金", "壬": "水", "癸": "水"}
+# 地支五行
+BRANCH_ELEMENTS = {"子": "水", "丑": "土", "寅": "木", "卯": "木", "辰": "土", "巳": "火", "午": "火", "未": "土", "申": "金", "酉": "金", "戌": "土", "亥": "水"}
+# 時辰對應
+HOUR_BRANCHES = {
+    "子時 (23:00-01:00)": "子", "丑時 (01:00-03:00)": "丑", "寅時 (03:00-05:00)": "寅",
+    "卯時 (05:00-07:00)": "卯", "辰時 (07:00-09:00)": "辰", "巳時 (09:00-11:00)": "巳",
+    "午時 (11:00-13:00)": "午", "未時 (13:00-15:00)": "未", "申時 (15:00-17:00)": "申",
+    "酉時 (17:00-19:00)": "酉", "戌時 (19:00-21:00)": "戌", "亥時 (21:00-23:00)": "亥"
+}
+
+# 五行補充建議
+ELEMENT_ADVICE = {
+    "金": {"desc": "金主義，代表決斷與正義感", "補": "多穿白色、金色衣物，配戴金屬飾品，多往西方發展。"},
+    "木": {"desc": "木主仁，代表成長與慈悲心", "補": "多穿綠色衣物，多接觸植物與大自然，多往東方發展。"},
+    "水": {"desc": "水主智，代表智慧與靈活性", "補": "多穿黑色、藍色衣物，多親近水邊，多往北方發展。"},
+    "火": {"desc": "火主禮，代表熱情與感染力", "補": "多穿紅色、紫色衣物，多曬太陽，多往南方發展。"},
+    "土": {"desc": "土主信，代表穩重與包容力", "補": "多穿黃色、棕色衣物，多接觸大地，居中發展最佳。"}
+}
+
+def get_year_pillar(year):
+    """計算年柱"""
+    stem_index = (year - 4) % 10
+    branch_index = (year - 4) % 12
+    return HEAVENLY_STEMS[stem_index], EARTHLY_BRANCHES[branch_index]
+
+def get_month_pillar(year, month):
+    """計算月柱（簡化版）"""
+    # 月柱的天干需要根據年干來推算
+    year_stem_index = (year - 4) % 10
+    # 月支固定：寅月=1月, 卯月=2月...
+    month_branch_index = (month + 1) % 12
+    # 月干計算公式
+    month_stem_index = (year_stem_index * 2 + month) % 10
+    return HEAVENLY_STEMS[month_stem_index], EARTHLY_BRANCHES[month_branch_index]
+
+def get_day_pillar(year, month, day):
+    """計算日柱（使用簡化公式）"""
+    # 簡化的日柱計算
+    base = date(1900, 1, 1)
+    target = date(year, month, day)
+    days = (target - base).days
+    stem_index = (days + 10) % 10
+    branch_index = days % 12
+    return HEAVENLY_STEMS[stem_index], EARTHLY_BRANCHES[branch_index]
+
+def get_hour_pillar(day_stem, hour_branch):
+    """計算時柱"""
+    day_stem_index = HEAVENLY_STEMS.index(day_stem)
+    hour_branch_index = EARTHLY_BRANCHES.index(hour_branch)
+    # 時干計算公式
+    hour_stem_index = (day_stem_index * 2 + hour_branch_index) % 10
+    return HEAVENLY_STEMS[hour_stem_index], hour_branch
+
+def calculate_five_elements(birthday, birth_hour=None):
+    """計算八字五行"""
+    year, month, day = birthday.year, birthday.month, birthday.day
+
+    # 計算四柱
+    year_stem, year_branch = get_year_pillar(year)
+    month_stem, month_branch = get_month_pillar(year, month)
+    day_stem, day_branch = get_day_pillar(year, month, day)
+
+    pillars = [
+        (year_stem, year_branch, "年柱"),
+        (month_stem, month_branch, "月柱"),
+        (day_stem, day_branch, "日柱")
+    ]
+
+    if birth_hour:
+        hour_stem, hour_branch = get_hour_pillar(day_stem, birth_hour)
+        pillars.append((hour_stem, hour_branch, "時柱"))
+
+    # 統計五行
+    element_count = {"金": 0, "木": 0, "水": 0, "火": 0, "土": 0}
+    for stem, branch, _ in pillars:
+        element_count[STEM_ELEMENTS[stem]] += 1
+        element_count[BRANCH_ELEMENTS[branch]] += 1
+
+    # 找出缺少的五行
+    missing = [e for e, c in element_count.items() if c == 0]
+    weak = [e for e, c in element_count.items() if c == 1]
+    strong = [e for e, c in element_count.items() if c >= 3]
+
+    return {
+        "pillars": pillars,
+        "counts": element_count,
+        "missing": missing,
+        "weak": weak,
+        "strong": strong,
+        "day_master": STEM_ELEMENTS[day_stem]  # 日主五行
+    }
 
 mbti_db = {
     "INTJ (建築師)": {
@@ -419,8 +605,31 @@ st.progress(current_progress)
 # --- Step 1: 命運基盤 ---
 if st.session_state.step == 1:
     st.subheader("Step 1: 🌌 命運基盤能量")
-    st.info("AI 將根據您的出生時刻，定位星盤坐標與生肖五行能量。")
+    st.info("AI 將根據您的出生時刻，定位星盤坐標、生肖五行與八字能量。")
+
     st.session_state.birthday = st.date_input("📅 您的出生年月日", value=date(2000, 1, 1), key="step1_birthday")
+
+    # 時辰選擇
+    st.markdown("**🕐 您的出生時辰**")
+    know_birth_hour = st.radio(
+        "您知道出生時辰嗎？",
+        ["知道", "不知道/不確定"],
+        horizontal=True,
+        key="know_birth_hour"
+    )
+
+    if know_birth_hour == "知道":
+        st.session_state.birth_hour = st.selectbox(
+            "請選擇出生時辰",
+            list(HOUR_BRANCHES.keys()),
+            key="step1_hour"
+        )
+        st.session_state.know_hour = True
+    else:
+        st.session_state.birth_hour = None
+        st.session_state.know_hour = False
+        st.caption("💡 不知道時辰也沒關係，我們會用簡化版計算為您分析")
+
     if st.button("下一步：探索性格基因 ➔"):
         st.session_state.step = 2
         st.rerun()
@@ -531,8 +740,10 @@ elif st.session_state.step == 4:
         loading_steps = [
             {"text": "🌌 正在調取星盤坐標，對齊黃道十二宮脈絡...", "t": 1.2},
             {"text": "🏮 讀取生肖命理，計算五行能量流動...", "t": 1.0},
+            {"text": "📜 推算八字命盤，分析五行盈缺...", "t": 1.3},
             {"text": "🧪 正在從氣味庫中篩選靈魂氣味基因...", "t": 1.5},
             {"text": "🧠 匹配人格核心，排除分子排斥反應...", "t": 1.3},
+            {"text": "🎨 計算 2026 馬年專屬幸運色...", "t": 0.8},
             {"text": "⚖️ 正在校準最佳 10ml 調配滴數...", "t": 0.8}
         ]
         for i, step in enumerate(loading_steps):
@@ -550,11 +761,17 @@ elif st.session_state.step == 4:
     mbti_choice = st.session_state.mbti_choice
     occasion = st.session_state.occasion
     selected_model = st.session_state.selected_model
+    birth_hour = st.session_state.get("birth_hour")
+    know_hour = st.session_state.get("know_hour", False)
 
     z_name = get_zodiac(birthday.month, birthday.day)
     c_zodiac = get_chinese_zodiac(birthday.year)
     c_element = zodiac_elements[c_zodiac]
     l_num = get_life_num(birthday)
+
+    # 計算八字五行
+    hour_branch = HOUR_BRANCHES.get(birth_hour) if birth_hour else None
+    five_elements = calculate_five_elements(birthday, hour_branch)
 
     res = mbti_db[mbti_choice]
     occ_data = perfume_logic[occasion]
@@ -562,21 +779,28 @@ elif st.session_state.step == 4:
     z_scent = zodiac_scents.get(z_name, {"top": "前調 芳香 01", "reason": "能量引導"})
     e_data = element_scents.get(c_element, {"base": "後調 木質 08"})
 
+    # 獲取靈數資訊
+    life_info = life_number_db.get(l_num, life_number_db["1"])
+
+    # 獲取幸運色
+    zodiac_colors = horse_year_lucky_colors["zodiac"].get(c_zodiac, {"colors": ["金色"], "avoid": "無", "reason": ""})
+    life_colors = horse_year_lucky_colors["life_number"].get(l_num, {"colors": ["白色"], "reason": ""})
+
     # 去重並限制 3 個
     final_top = list(dict.fromkeys([z_scent["top"]] + res['top']))[:3]
     final_mid = list(dict.fromkeys(res['mid']))[:3]
     final_base = list(dict.fromkeys([e_data["base"]] + res['base']))[:3]
 
-    # 渲染卡片
+    # 渲染主卡片 - 放大標籤字體
     st.markdown(f"""
     <div style="background: white; padding: 25px; border-radius: 20px; border: 2px solid #1a1a1a; box-shadow: 8px 8px 0px #F5F5F5; color: #333;">
         <h2 style="text-align:center; color:#8B4513;">🧬 AI 全維度專屬配方</h2>
-        <div style="display:flex; justify-content:center; gap:10px; margin:15px 0;">
-            <span style="background:#E3F2FD; padding:4px 10px; border-radius:10px; font-size:11px;">🌠 {z_name}</span>
-            <span style="background:#F3E5F5; padding:4px 10px; border-radius:10px; font-size:11px;">🏮 {c_zodiac}({c_element})</span>
-            <span style="background:#E8F5E9; padding:4px 10px; border-radius:10px; font-size:11px;">🔢 靈數 {l_num}</span>
+        <div style="display:flex; justify-content:center; gap:12px; margin:15px 0; flex-wrap:wrap;">
+            <span style="background:#E3F2FD; padding:8px 16px; border-radius:12px; font-size:15px; font-weight:bold;">🌠 {z_name}</span>
+            <span style="background:#F3E5F5; padding:8px 16px; border-radius:12px; font-size:15px; font-weight:bold;">🏮 {c_zodiac}年（{c_element}）</span>
+            <span style="background:#E8F5E9; padding:8px 16px; border-radius:12px; font-size:15px; font-weight:bold;">🔢 {l_num} 號人</span>
         </div>
-        <div style="font-size: 12px; color: #4A5568; line-height: 1.6; background: #FAFAFA; padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 0.5px solid #EDF2F7;">
+        <div style="font-size: 13px; color: #4A5568; line-height: 1.7; background: #FAFAFA; padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 0.5px solid #EDF2F7;">
             <p style="margin:0 0 10px 0;"><b>✨ 星座特質：</b>{zodiac_db.get(z_name, "能量引導者")}</p>
             <p style="margin:0;"><b>☯️ 五行能量：</b>{element_traits.get(c_element, "穩定底蘊")}</p>
         </div>
@@ -587,6 +811,81 @@ elif st.session_state.step == 4:
         </div>
     </div>
     """, unsafe_allow_html=True)
+
+    # 八字五行分析卡片
+    st.write("---")
+    st.subheader("📜 八字五行命盤分析")
+
+    # 五行統計
+    element_icons = {"金": "🪙", "木": "🌳", "水": "💧", "火": "🔥", "土": "�ite🏔️"}
+    cols = st.columns(5)
+    for i, (elem, count) in enumerate(five_elements["counts"].items()):
+        with cols[i]:
+            icon = {"金": "🪙", "木": "🌿", "水": "💧", "火": "🔥", "土": "🏔️"}[elem]
+            st.metric(f"{icon} {elem}", f"{count} 個")
+
+    # 五行分析結果
+    missing_text = "、".join(five_elements["missing"]) if five_elements["missing"] else "無"
+    weak_text = "、".join(five_elements["weak"]) if five_elements["weak"] else "無"
+    strong_text = "、".join(five_elements["strong"]) if five_elements["strong"] else "無"
+
+    analysis_note = "（含時辰完整分析）" if know_hour else "（簡易分析，不含時辰）"
+
+    st.markdown(f"""
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 15px; color: white; margin: 15px 0;">
+        <h4 style="margin:0 0 15px 0;">🔮 五行盈缺分析 {analysis_note}</h4>
+        <p style="margin:5px 0;"><b>⚠️ 缺少五行：</b>{missing_text}</p>
+        <p style="margin:5px 0;"><b>📉 偏弱五行：</b>{weak_text}</p>
+        <p style="margin:5px 0;"><b>📈 較旺五行：</b>{strong_text}</p>
+        <p style="margin:5px 0;"><b>🎯 日主五行：</b>{five_elements["day_master"]}</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 五行補充建議
+    if five_elements["missing"] or five_elements["weak"]:
+        need_elements = five_elements["missing"] + five_elements["weak"]
+        st.markdown("#### 💡 五行補充建議")
+        for elem in need_elements[:2]:  # 最多顯示兩個
+            advice = ELEMENT_ADVICE.get(elem, {})
+            st.info(f"**補{elem}**：{advice.get('補', '')}")
+
+    # 生命靈數解析
+    st.write("---")
+    st.subheader(f"🔢 {l_num} 號人命格解析")
+    st.markdown(f"""
+    <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 20px; border-radius: 15px; color: white;">
+        <h4 style="margin:0 0 10px 0;">✨ {life_info['trait']}</h4>
+        <p style="margin:10px 0; line-height:1.8;">{life_info['desc']}</p>
+        <div style="background:rgba(255,255,255,0.2); padding:15px; border-radius:10px; margin-top:15px;">
+            <p style="margin:0;"><b>🏮 2026 馬年運勢指引：</b></p>
+            <p style="margin:10px 0 0 0; line-height:1.8;">{life_info['advice']}</p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 2026 馬年幸運色
+    st.write("---")
+    st.subheader("🎨 2026 馬年專屬幸運色")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown(f"""
+        <div style="background: #FFF5E6; padding: 20px; border-radius: 15px; border: 2px solid #FFB366;">
+            <h4 style="margin:0 0 10px 0; color:#CC6600;">🏮 生肖「{c_zodiac}」幸運色</h4>
+            <p style="font-size:20px; font-weight:bold; color:#8B4513;">{'、'.join(zodiac_colors['colors'])}</p>
+            <p style="font-size:12px; color:#666; margin:10px 0 0 0;">🚫 避開：{zodiac_colors['avoid']}</p>
+            <p style="font-size:11px; color:#888; margin:5px 0 0 0; line-height:1.5;"><i>{zodiac_colors['reason']}</i></p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col2:
+        st.markdown(f"""
+        <div style="background: #F0F5FF; padding: 20px; border-radius: 15px; border: 2px solid #6699FF;">
+            <h4 style="margin:0 0 10px 0; color:#3366CC;">🔢 靈數「{l_num}」幸運色</h4>
+            <p style="font-size:20px; font-weight:bold; color:#333;">{'、'.join(life_colors['colors'])}</p>
+            <p style="font-size:11px; color:#888; margin:10px 0 0 0; line-height:1.5;"><i>{life_colors['reason']}</i></p>
+        </div>
+        """, unsafe_allow_html=True)
 
     # 配比顯示
     st.write("---")
@@ -601,3 +900,4 @@ elif st.session_state.step == 4:
     if st.button("🔄 重新開始分析"):
         st.session_state.clear()
         st.rerun()
+
