@@ -4,8 +4,10 @@
 #現在要把最後動畫做好一點
 #新增了測試人格，現在在新增對應五行幸運色
 #新增了測試跟五行，現在新增對香味的喜愛程度
+#加入喜歡的香以及香味對於個性的特質
 import streamlit as st
 from datetime import date
+from collections import Counter
 import time
 import random
 
@@ -477,6 +479,26 @@ mbti_db = {
     }
 }
 
+# MBTI 個性關鍵詞（用於香味匹配說明）
+mbti_personality = {
+    "INTJ (建築師)": "深思熟慮、追求卓越",
+    "INFP (調解者)": "浪漫理想、溫柔敏感",
+    "INFJ (提倡者)": "直覺敏銳、深情內斂",
+    "ENFP (競選者)": "熱情開朗、充滿活力",
+    "ENTJ (指揮官)": "自信果斷、領導魅力",
+    "ENTP (辯論家)": "機智靈活、大膽創新",
+    "ENFJ (主人公)": "溫暖熱心、感染力強",
+    "ISTJ (物流師)": "穩重務實、嚴謹可靠",
+    "ISFJ (守衛者)": "溫柔體貼、細心呵護",
+    "ESTJ (總經理)": "高效果斷、務實負責",
+    "ESFJ (執政官)": "熱心友善、樂於助人",
+    "ISTP (鑑賞家)": "冷靜理性、獨立沉著",
+    "ISFP (探險家)": "藝術感性、自由真實",
+    "ESTP (企業家)": "大膽果敢、勇於冒險",
+    "ESFP (表演者)": "活潑開朗、熱愛生活",
+    "INTP (邏輯學家)": "理性深邃、好奇探索"
+}
+
 zodiac_scents = {
     "白羊座": {"top": "前調 柑橘 04", "reason": "葡萄柚的爆發力對應開拓者不熄的勇氣能量。"},
     "金牛座": {"top": "前調 芳香 05", "reason": "梔子花的細膩純淨，呼應您對感官品質與質感的追求。"},
@@ -507,6 +529,87 @@ perfume_logic = {
     "日常通勤": {"type": "EDT", "total_oil": 1.0}, "約會派對": {"type": "EDP", "total_oil": 1.5},
     "商務正式": {"type": "EDP", "total_oil": 1.2}, "運動休閒": {"type": "Cologne", "total_oil": 0.8},
     "冥想睡眠": {"type": "Mist", "total_oil": 0.6}
+}
+
+# ==========================================
+# 數據庫 G：場景偏好題目
+# ==========================================
+scene_questions = [
+    {
+        "question": "閉上眼睛，想像一個讓你最放鬆的自然環境：",
+        "options": [
+            {"text": "🌲 陽光穿透樹葉的靜謐森林", "scents": ["前調 柑苔 01", "前調 柑苔 04", "後調 木質 02"], "tag": "woody"},
+            {"text": "🌊 海風輕拂的沙灘海岸", "scents": ["前調 柑橘 05", "前調 柑橘 06", "中調 果香 09"], "tag": "fresh"},
+            {"text": "🌸 繁花盛開的浪漫花園", "scents": ["中調 花香 03", "中調 花香 04", "中調 花香 16"], "tag": "floral"},
+            {"text": "⛰️ 雲霧繚繞的高山之巔", "scents": ["前調 芳香 06", "後調 木質 09", "後調 東方 07"], "tag": "fresh"}
+        ]
+    },
+    {
+        "question": "什麼時刻的氛圍最能觸動你的心？",
+        "options": [
+            {"text": "🌅 薄霧中的清晨，露珠還掛在葉尖", "scents": ["前調 芳香 09", "前調 芳香 02", "中調 花香 06"], "tag": "fresh"},
+            {"text": "☀️ 陽光燦爛的午後，暖洋洋的愜意", "scents": ["前調 柑橘 01", "前調 柑橘 04", "中調 果香 01"], "tag": "citrus"},
+            {"text": "🌆 華燈初上的傍晚，浪漫的微醺時分", "scents": ["中調 花香 02", "中調 花香 10", "後調 東方 01"], "tag": "oriental"},
+            {"text": "🌙 萬籟俱寂的深夜，獨享靜謐時光", "scents": ["後調 木質 06", "後調 木質 08", "後調 東方 04"], "tag": "woody"}
+        ]
+    },
+    {
+        "question": "以下哪個空間的氣味讓你最感到舒適？",
+        "options": [
+            {"text": "☕ 飄著咖啡香的溫暖咖啡館", "scents": ["中調 果香 10", "後調 東方 04", "後調 東方 08"], "tag": "oriental"},
+            {"text": "🍵 清幽雅致的東方茶室", "scents": ["前調 芳香 01", "前調 芳香 09", "後調 東方 02"], "tag": "fresh"},
+            {"text": "🍋 新鮮水果堆疊的夏日市集", "scents": ["前調 柑橘 02", "中調 果香 03", "中調 果香 07"], "tag": "citrus"},
+            {"text": "🥐 剛出爐麵包香的烘焙坊", "scents": ["後調 東方 05", "後調 東方 11", "中調 花香 09"], "tag": "oriental"}
+        ]
+    },
+    {
+        "question": "哪種活動狀態最能代表你理想中的自己？",
+        "options": [
+            {"text": "🧘 靜心冥想，與內在對話", "scents": ["後調 木質 08", "後調 木質 13", "前調 柑苔 04"], "tag": "woody"},
+            {"text": "💃 派對狂歡，釋放熱情能量", "scents": ["前調 柑橘 04", "中調 果香 04", "中調 果香 07"], "tag": "citrus"},
+            {"text": "📚 沉浸書海，享受知識洗禮", "scents": ["後調 東方 04", "後調 木質 02", "前調 芳香 05"], "tag": "woody"},
+            {"text": "🎒 探索冒險，追尋未知刺激", "scents": ["前調 芳香 08", "前調 柑橘 06", "後調 東方 07"], "tag": "fresh"}
+        ]
+    },
+    {
+        "question": "哪個場景的氣味會喚起你最美好的回憶？",
+        "options": [
+            {"text": "🏡 外婆家的老木櫃與陳年香氣", "scents": ["後調 木質 10", "後調 木質 11", "後調 東方 08"], "tag": "woody"},
+            {"text": "🏨 高級飯店的優雅大廳香氛", "scents": ["中調 花香 02", "中調 花香 11", "後調 木質 13"], "tag": "floral"},
+            {"text": "🌾 鄉間田野的青草與泥土氣息", "scents": ["前調 芳香 02", "前調 柑苔 04", "中調 花香 06"], "tag": "fresh"},
+            {"text": "🌃 都市夜晚的時尚與神秘", "scents": ["後調 東方 03", "後調 東方 09", "後調 木質 06"], "tag": "oriental"}
+        ]
+    }
+]
+
+# ==========================================
+# 數據庫 H：季節偏好與香味對應
+# ==========================================
+season_scents = {
+    "🌸 春天 - 萬物復甦，生機盎然": {
+        "top": ["前調 芳香 02", "前調 芳香 03", "前調 柑橘 01"],
+        "mid": ["中調 花香 05", "中調 花香 06", "中調 花香 07"],
+        "base": ["後調 木質 02", "後調 木質 07"],
+        "desc": "春季香氛以清新花香為主調，帶來新生的希望與活力。"
+    },
+    "☀️ 夏天 - 陽光燦爛，熱情奔放": {
+        "top": ["前調 柑橘 04", "前調 柑橘 05", "前調 柑橘 06"],
+        "mid": ["中調 果香 02", "中調 果香 05", "中調 果香 09"],
+        "base": ["後調 東方 06", "後調 木質 12"],
+        "desc": "夏季香氛以柑橘果香為主調，清爽提神，充滿活力。"
+    },
+    "🍂 秋天 - 金風送爽，沉穩內斂": {
+        "top": ["前調 芳香 01", "前調 芳香 05", "前調 柑苔 01"],
+        "mid": ["中調 花香 19", "中調 花香 08", "中調 果香 01"],
+        "base": ["後調 木質 03", "後調 木質 10", "後調 東方 02"],
+        "desc": "秋季香氛以木質溫暖為主調，沉穩大氣，韻味悠長。"
+    },
+    "❄️ 冬天 - 靜謐深邃，溫暖療癒": {
+        "top": ["前調 芳香 01", "前調 柑苔 02", "前調 芳香 07"],
+        "mid": ["中調 花香 08", "中調 花香 09", "中調 果香 10"],
+        "base": ["後調 東方 08", "後調 木質 08", "後調 東方 05"],
+        "desc": "冬季香氛以東方暖香為主調，如壁爐般溫暖，撫慰心靈。"
+    }
 }
 
 # ==========================================
@@ -562,14 +665,66 @@ def calculate_mbti(answers):
 # ==========================================
 # 核心函數
 # ==========================================
-def translate_scents(code_list):
+def translate_scents(code_list, personality_info=None):
+    """
+    顯示香味建議，支援顯示個性匹配說明
+    personality_info: dict，包含多種個性來源
+    """
     html_snippets = ""
     for i, code in enumerate(code_list):
         full_info = scent_map.get(code, f"{code} (專屬配方)")
         name = full_info.split(" (")[0] if " (" in full_info else full_info
+        ing_raw = full_info.split(" (")[1].rstrip(")") if " (" in full_info else ""
         ing = "(" + full_info.split(" (")[1] if " (" in full_info else ""
         desc = scent_descriptions.get(code, "這款香氣能優雅平衡你的內在能量。")
-        html_snippets += f"<div style='margin-bottom:8px; padding:10px; border-radius:10px; background:rgba(255,255,255,0.45); border:0.5px solid #eee;'><div style='color: #8B4513; font-weight: bold; font-size: 14px;'>建議: {name}</div><div style='font-size: 11px; color: #666;'>{ing}</div><div style='font-size: 10px; color: #9E7E6B; margin-top:4px;'><i>{desc}</i></div></div>"
+
+        # 生成個性匹配說明 - 隨機從不同來源選擇
+        match_reason = ""
+        if personality_info and ing_raw:
+            # 建立多種說明模板
+            templates = []
+
+            # 星座相關
+            if personality_info.get("zodiac_trait"):
+                zodiac = personality_info.get("zodiac", "")
+                trait = personality_info.get("zodiac_trait")
+                templates.append(f"{ing_raw}的香味呼應你身為{zodiac}{trait}的特質")
+                templates.append(f"作為{zodiac}的你，{ing_raw}的氣息能襯托你{trait}的靈魂")
+
+            # MBTI 相關
+            if personality_info.get("mbti_trait"):
+                mbti = personality_info.get("mbti", "").split(" ")[0]  # 只取 INTJ 部分
+                trait = personality_info.get("mbti_trait")
+                templates.append(f"{ing_raw}的香味符合你{trait}的性格")
+                templates.append(f"你的 {mbti} 人格{trait}，與{ing_raw}的氣質完美共鳴")
+
+            # 五行相關
+            if personality_info.get("element_trait"):
+                element = personality_info.get("element", "")
+                trait = personality_info.get("element_trait")
+                templates.append(f"{ing_raw}的香味能平衡你{element}屬性{trait}的能量")
+                templates.append(f"你的五行屬{element}，{ing_raw}能滋養你{trait}的內在")
+
+            # 生命靈數相關
+            if personality_info.get("life_num_trait"):
+                life_num = personality_info.get("life_num", "")
+                trait = personality_info.get("life_num_trait")
+                templates.append(f"作為 {life_num} 號人，{ing_raw}的香氣呼應你{trait}的天賦")
+                templates.append(f"{ing_raw}的氣息與你 {life_num} 號人{trait}的特質相得益彰")
+
+            # 生肖相關
+            if personality_info.get("chinese_zodiac_trait"):
+                c_zodiac = personality_info.get("chinese_zodiac", "")
+                trait = personality_info.get("chinese_zodiac_trait")
+                templates.append(f"屬{c_zodiac}的你{trait}，{ing_raw}的香味能強化這份能量")
+
+            # 隨機選一個模板（使用 code 和 i 作為種子確保同樣輸入結果一致）
+            if templates:
+                seed = hash(code + str(i)) % len(templates)
+                chosen = templates[seed]
+                match_reason = f"<div style='font-size: 14px; color: #6B4E3D; margin-top:8px; padding:10px; background:rgba(139,69,19,0.08); border-radius:8px;'>💫 <b>為何適合你：</b>{chosen}</div>"
+
+        html_snippets += f"<div style='margin-bottom:12px; padding:14px; border-radius:12px; background:rgba(255,255,255,0.6); border:1px solid #e0d5c7;'><div style='color: #8B4513; font-weight: bold; font-size: 18px;'>建議：{name}</div><div style='font-size: 14px; color: #666; margin-top:4px;'>{ing}</div><div style='font-size: 14px; color: #9E7E6B; margin-top:8px; line-height:1.6;'><i>{desc}</i></div>{match_reason}</div>"
     return html_snippets
 
 def get_zodiac(m, d):
@@ -595,11 +750,11 @@ st.title("🧪 Aroma's Secret Lab")
 if "step" not in st.session_state:
     st.session_state.step = 1
 
-# 進度條
-progress_map = {1: 0.25, 2: 0.5, 3: 0.75, 4: 1.0}
+# 進度條 (現在有 5 個步驟)
+progress_map = {1: 0.2, 2: 0.4, 3: 0.6, 4: 0.8, 5: 1.0}
 current_progress = progress_map.get(st.session_state.step, 1.0)
 if st.session_state.get("taking_mbti_test", False):
-    current_progress = 0.5  # 測試中也顯示 50%
+    current_progress = 0.4  # 測試中也顯示 40%
 st.progress(current_progress)
 
 # --- Step 1: 命運基盤 ---
@@ -710,16 +865,51 @@ elif st.session_state.step == 2:
                 st.session_state.step = 1
                 st.rerun()
         with col2:
-            if st.button("下一步：氣味場景建模 ➔"):
+            if st.button("下一步：探索感官偏好 ➔"):
                 st.session_state.step = 3
                 st.rerun()
 
-# --- Step 3: 氣味建模 ---
+# --- Step 3: 感官偏好 (場景 + 季節) ---
 elif st.session_state.step == 3:
-    st.subheader("Step 3: 📐 氣味場景建模")
-    st.info("選擇使用的場合與您偏好的香氣結構。")
-    st.session_state.occasion = st.selectbox("🏙️ 預計使用場合", list(perfume_logic.keys()), key="step3_occ")
-    st.session_state.selected_model = st.selectbox("📐 香氣結構模型", list(model_logic.keys()), key="step3_model")
+    st.subheader("Step 3: 🎭 感官記憶探索")
+    st.info("透過場景聯想，找出最能觸動你內心的香氣類型。")
+
+    # 初始化場景答案
+    if "scene_answers" not in st.session_state:
+        st.session_state.scene_answers = [None] * 5
+
+    # 場景題目
+    st.markdown("### 🖼️ 場景聯想測試")
+    st.caption("請選擇最能引起你共鳴的選項")
+
+    for i, q in enumerate(scene_questions):
+        st.markdown(f"**Q{i+1}. {q['question']}**")
+        options = [opt["text"] for opt in q["options"]]
+
+        choice = st.radio(
+            f"場景 Q{i+1}",
+            options=options,
+            index=None,
+            key=f"scene_q_{i}",
+            label_visibility="collapsed"
+        )
+
+        if choice:
+            st.session_state.scene_answers[i] = choice
+        st.markdown("---")
+
+    # 季節選擇
+    st.markdown("### 🌿 季節偏好")
+    st.session_state.season_choice = st.radio(
+        "哪個季節的氛圍最讓你感到舒適？",
+        list(season_scents.keys()),
+        index=None,
+        key="season_select"
+    )
+
+    # 檢查是否完成
+    all_scenes_answered = all(ans is not None for ans in st.session_state.scene_answers)
+    season_selected = st.session_state.season_choice is not None
 
     col1, col2 = st.columns(2)
     with col1:
@@ -727,24 +917,46 @@ elif st.session_state.step == 3:
             st.session_state.step = 2
             st.rerun()
     with col2:
-        if st.button("🔮 啟動 AI 深度分析"):
+        if st.button("下一步：氣味場景建模 ➔", disabled=not (all_scenes_answered and season_selected)):
             st.session_state.step = 4
             st.rerun()
 
-# --- Step 4: 結果展示 ---
+    if not (all_scenes_answered and season_selected):
+        st.warning("請完成所有場景題目並選擇喜歡的季節")
+
+# --- Step 4: 氣味建模 ---
 elif st.session_state.step == 4:
+    st.subheader("Step 4: 📐 氣味場景建模")
+    st.info("選擇使用的場合與您偏好的香氣結構。")
+    st.session_state.occasion = st.selectbox("🏙️ 預計使用場合", list(perfume_logic.keys()), key="step4_occ")
+    st.session_state.selected_model = st.selectbox("📐 香氣結構模型", list(model_logic.keys()), key="step4_model")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("⬅ 返回上一步"):
+            st.session_state.step = 3
+            st.rerun()
+    with col2:
+        if st.button("🔮 啟動 AI 深度分析"):
+            st.session_state.step = 5
+            st.rerun()
+
+# --- Step 5: 結果展示 ---
+elif st.session_state.step == 5:
     # 判斷是否已經運行過載入動畫
     if "done_loading" not in st.session_state:
         progress_bar = st.progress(0)
         status_text = st.empty()
         loading_steps = [
-            {"text": "🌌 正在調取星盤坐標，對齊黃道十二宮脈絡...", "t": 1.2},
-            {"text": "🏮 讀取生肖命理，計算五行能量流動...", "t": 1.0},
-            {"text": "📜 推算八字命盤，分析五行盈缺...", "t": 1.3},
-            {"text": "🧪 正在從氣味庫中篩選靈魂氣味基因...", "t": 1.5},
-            {"text": "🧠 匹配人格核心，排除分子排斥反應...", "t": 1.3},
-            {"text": "🎨 計算 2026 馬年專屬幸運色...", "t": 0.8},
-            {"text": "⚖️ 正在校準最佳 10ml 調配滴數...", "t": 0.8}
+            {"text": "🌌 正在調取星盤坐標，對齊黃道十二宮脈絡...", "t": 1.0},
+            {"text": "🏮 讀取生肖命理，計算五行能量流動...", "t": 0.8},
+            {"text": "📜 推算八字命盤，分析五行盈缺...", "t": 1.0},
+            {"text": "🎭 解析場景記憶，提取感官偏好...", "t": 1.2},
+            {"text": "🌿 融合季節能量，調和香氣頻率...", "t": 0.8},
+            {"text": "🧪 正在從氣味庫中篩選靈魂氣味基因...", "t": 1.2},
+            {"text": "🧠 匹配人格核心，排除分子排斥反應...", "t": 1.0},
+            {"text": "🎨 計算 2026 馬年專屬幸運色...", "t": 0.6},
+            {"text": "⚖️ 正在校準最佳 10ml 調配滴數...", "t": 0.6}
         ]
         for i, step in enumerate(loading_steps):
             status_text.markdown(f"**{step['text']}**")
@@ -763,6 +975,8 @@ elif st.session_state.step == 4:
     selected_model = st.session_state.selected_model
     birth_hour = st.session_state.get("birth_hour")
     know_hour = st.session_state.get("know_hour", False)
+    scene_answers = st.session_state.get("scene_answers", [])
+    season_choice = st.session_state.get("season_choice", "🌸 春天 - 萬物復甦，生機盎然")
 
     z_name = get_zodiac(birthday.month, birthday.day)
     c_zodiac = get_chinese_zodiac(birthday.year)
@@ -786,10 +1000,91 @@ elif st.session_state.step == 4:
     zodiac_colors = horse_year_lucky_colors["zodiac"].get(c_zodiac, {"colors": ["金色"], "avoid": "無", "reason": ""})
     life_colors = horse_year_lucky_colors["life_number"].get(l_num, {"colors": ["白色"], "reason": ""})
 
+    # 處理場景偏好推薦
+    scene_scent_suggestions = {"top": [], "mid": [], "base": []}
+    scene_tags = []
+    for i, answer in enumerate(scene_answers):
+        if answer:
+            for opt in scene_questions[i]["options"]:
+                if opt["text"] == answer:
+                    scene_tags.append(opt["tag"])
+                    for scent in opt["scents"]:
+                        if scent.startswith("前調"):
+                            scene_scent_suggestions["top"].append(scent)
+                        elif scent.startswith("中調"):
+                            scene_scent_suggestions["mid"].append(scent)
+                        else:
+                            scene_scent_suggestions["base"].append(scent)
+                    break
+
+    # 獲取季節推薦
+    season_data = season_scents.get(season_choice, season_scents["🌸 春天 - 萬物復甦，生機盎然"])
+
+    # 整合所有推薦：星座 + MBTI + 場景 + 季節
+    # 優先順序：場景偏好 > 季節 > 星座 > MBTI
+    all_top = scene_scent_suggestions["top"] + season_data["top"] + [z_scent["top"]] + res['top']
+    all_mid = scene_scent_suggestions["mid"] + season_data["mid"] + res['mid']
+    all_base = scene_scent_suggestions["base"] + season_data["base"] + [e_data["base"]] + res['base']
+
     # 去重並限制 3 個
-    final_top = list(dict.fromkeys([z_scent["top"]] + res['top']))[:3]
-    final_mid = list(dict.fromkeys(res['mid']))[:3]
-    final_base = list(dict.fromkeys([e_data["base"]] + res['base']))[:3]
+    final_top = list(dict.fromkeys(all_top))[:3]
+    final_mid = list(dict.fromkeys(all_mid))[:3]
+    final_base = list(dict.fromkeys(all_base))[:3]
+
+    # 分析場景偏好標籤
+    from collections import Counter
+    tag_counts = Counter(scene_tags)
+    dominant_tag = tag_counts.most_common(1)[0][0] if tag_counts else "balanced"
+    tag_descriptions = {
+        "woody": "木質沉穩型 - 你偏好沉靜內斂的氛圍，適合帶有木質、苔蘚調的香氣",
+        "fresh": "清新自然型 - 你喜歡清爽通透的感覺，適合綠葉、草本調的香氣",
+        "floral": "花香浪漫型 - 你欣賞優雅細膩的美，適合花香、粉香調的香氣",
+        "citrus": "柑橘活力型 - 你喜歡明亮愉悅的能量，適合果香、柑橘調的香氣",
+        "oriental": "東方神秘型 - 你被溫暖深邃的氛圍吸引，適合東方、辛香調的香氣",
+        "balanced": "平衡和諧型 - 你的品味多元包容，適合層次豐富的複合香氣"
+    }
+
+    # 星座個性簡短描述（用於香味匹配說明）
+    zodiac_personality = {
+        "白羊座": "勇敢熱情", "金牛座": "穩重質感", "雙子座": "靈動好奇",
+        "巨蟹座": "細膩溫暖", "獅子座": "自信耀眼", "處女座": "細心完美",
+        "天秤座": "優雅平衡", "天蠍座": "神秘深邃", "射手座": "自由冒險",
+        "摩羯座": "沉穩踏實", "水瓶座": "獨立創新", "雙魚座": "浪漫感性"
+    }
+
+    # 五行個性簡短描述
+    element_personality = {
+        "水": "智慧靈性", "木": "成長生機", "火": "熱情活力", "金": "剛毅精準", "土": "厚重穩定"
+    }
+
+    # 生命靈數個性簡短描述
+    life_num_personality = {
+        "1": "領導獨立", "2": "溫和協調", "3": "創意表達",
+        "4": "務實穩定", "5": "自由冒險", "6": "關懷責任",
+        "7": "智慧探索", "8": "權威成就", "9": "博愛理想"
+    }
+
+    # 生肖個性簡短描述
+    chinese_zodiac_personality = {
+        "鼠": "機敏聰慧", "牛": "勤奮踏實", "虎": "勇猛果敢",
+        "兔": "溫柔細膩", "龍": "氣度非凡", "蛇": "冷靜睿智",
+        "馬": "熱情奔放", "羊": "溫和善良", "猴": "靈活聰穎",
+        "雞": "勤勉自信", "狗": "忠誠正直", "豬": "真誠樂觀"
+    }
+
+    # 建立個性資訊字典，傳給 translate_scents
+    personality_info = {
+        "mbti": mbti_choice,
+        "mbti_trait": mbti_personality.get(mbti_choice, "獨特"),
+        "zodiac": z_name,
+        "zodiac_trait": zodiac_personality.get(z_name, "獨特"),
+        "element": c_element,
+        "element_trait": element_personality.get(c_element, "平衡"),
+        "life_num": l_num,
+        "life_num_trait": life_num_personality.get(l_num, "獨特"),
+        "chinese_zodiac": c_zodiac,
+        "chinese_zodiac_trait": chinese_zodiac_personality.get(c_zodiac, "獨特")
+    }
 
     # 渲染主卡片 - 放大標籤字體
     st.markdown(f"""
@@ -804,13 +1099,37 @@ elif st.session_state.step == 4:
             <p style="margin:0 0 10px 0;"><b>✨ 星座特質：</b>{zodiac_db.get(z_name, "能量引導者")}</p>
             <p style="margin:0;"><b>☯️ 五行能量：</b>{element_traits.get(c_element, "穩定底蘊")}</p>
         </div>
-        <div style="background:#FFF9F0; padding:10px; border-radius:10px; border-left: 5px solid #D4AF37;">
-            <p style="font-weight:bold; margin:0;">【前調建議】</p>{translate_scents(final_top)}
-            <p style="font-weight:bold; margin:10px 0 0 0;">【中調建議】</p>{translate_scents(final_mid)}
-            <p style="font-weight:bold; margin:10px 0 0 0;">【後調建議】</p>{translate_scents(final_base)}
+        <div style="background:#FFF9F0; padding:15px; border-radius:10px; border-left: 5px solid #D4AF37;">
+            <p style="font-weight:bold; margin:0; font-size:16px;">【前調建議】</p>{translate_scents(final_top, personality_info)}
+            <p style="font-weight:bold; margin:15px 0 0 0; font-size:16px;">【中調建議】</p>{translate_scents(final_mid, personality_info)}
+            <p style="font-weight:bold; margin:15px 0 0 0; font-size:16px;">【後調建議】</p>{translate_scents(final_base, personality_info)}
         </div>
     </div>
     """, unsafe_allow_html=True)
+
+    # 感官偏好分析卡片
+    st.write("---")
+    st.subheader("🎭 感官偏好分析")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); padding: 20px; border-radius: 15px;">
+            <h4 style="margin:0 0 10px 0; color:#333;">🖼️ 你的香氣人格</h4>
+            <p style="font-size:14px; color:#444; line-height:1.7; margin:0;">{tag_descriptions.get(dominant_tag, tag_descriptions["balanced"])}</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col2:
+        season_emoji = season_choice.split(" ")[0]
+        season_name = season_choice.split(" - ")[0].replace(season_emoji, "").strip()
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); padding: 20px; border-radius: 15px;">
+            <h4 style="margin:0 0 10px 0; color:#333;">🌿 季節香氣偏好</h4>
+            <p style="font-size:18px; font-weight:bold; color:#8B4513; margin:5px 0;">{season_emoji} {season_name}</p>
+            <p style="font-size:12px; color:#666; margin:0;">{season_data["desc"]}</p>
+        </div>
+        """, unsafe_allow_html=True)
 
     # 八字五行分析卡片
     st.write("---")
@@ -900,4 +1219,3 @@ elif st.session_state.step == 4:
     if st.button("🔄 重新開始分析"):
         st.session_state.clear()
         st.rerun()
-
